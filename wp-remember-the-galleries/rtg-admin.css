@@ -1,0 +1,13 @@
+.gallery-name-container .ui-menu-item {
+	padding: .25em;
+}
+	.gallery-result {
+		cursor: pointer;
+	}
+	.gallery-result:hover,
+	.gallery-result.ui-state-focus {
+		background-color: #f8f8f8;
+	}
+	.gallery-result .gallery-ops {
+		float: right;
+	}
