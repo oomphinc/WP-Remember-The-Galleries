@@ -54,8 +54,6 @@ class WP_Remember_The_Galleries {
 		add_action( 'wp_ajax_rtg_save_gallery', array( $c, 'save_gallery' ) );
 		add_action( 'wp_ajax_rtg_gallery_search', array( $c, 'gallery_search' ) );
 
-		add_action( 'edit_term_taxonomy', array( $c, 'update_term_count' ), 10, 2 );
-
 		// Accept 'slug' in [gallery] shortcode and emit a saved gallery
 		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 2 );
 
