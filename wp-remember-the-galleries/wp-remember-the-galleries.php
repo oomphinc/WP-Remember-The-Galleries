@@ -74,7 +74,7 @@ class WP_Remember_The_Galleries {
 		register_post_type( self::entity, array(
 			'labels' => $labels,
 			'show_ui' => false,
-			'public' => false,
+			'public' => true,
 			'menu_position' => 9,
 			'map_meta_cap' => true,
 			'supports' => array(
@@ -90,7 +90,8 @@ class WP_Remember_The_Galleries {
 
 		register_taxonomy( self::entity, 'attachment', array(
 			'labels'        => $labels,
-			'public'        => false,
+			'public'        => true,
+			'show_in_nav_menus' => false,
 			'show_ui'       => true,
 			'capabilities'  => array(
 				'manage_terms' => 'manage_' . self::entity,
