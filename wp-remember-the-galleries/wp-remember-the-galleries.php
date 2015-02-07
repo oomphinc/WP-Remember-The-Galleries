@@ -57,6 +57,9 @@ class WP_Remember_The_Galleries {
 		// Accept 'slug' in [gallery] shortcode and emit a saved gallery
 		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 2 );
 
+		add_filter( 'manage_' . self::entity . '_custom_column', array( $c, 'render_custom_columns' ), 15, 3 );
+		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
+
 		$labels = array(
 			'name'              => __( "Galleries" ),
 			'singular_name'     => __( "Gallery" ),
@@ -103,6 +106,26 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
+	 * Insert "image" column
+	 */
+	static function manage_columns( $columns ) {
+		unset( $columns['posts'] );
+		$columns['images'] = __( "Images" );
+		return $columns;
+	}
+
+	/**
+	 * Render "Image" column
+	 */
+	function render_custom_columns( $row, $column_name, $term_id ) {
+		if( $column_name === 'images' ) {
+			$objects = get_objects_in_term( $term_id, self::entity );
+
+			return '<a class="open-gallery-edit" href="javascript:void(0);" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . count( $objects ) . '</a>';
+		}
+	}
+
+	/**
 	 * Render relevant media templates
 	 *
 	 * @action print_media_templates
@@ -133,14 +156,15 @@ class WP_Remember_The_Galleries {
 			)
 		);
 
-		if( $current_screen->id === 'upload' || $current_screen->id === 'post' ) {
+		if( $current_screen->id === 'upload' || $current_screen->id === 'post' ||
+				( $current_screen->base === 'edit-tags' && $current_screen->taxonomy == self::entity ) ) {
 			global $post;
 
 			// Detect shortcode slugs and add them to the localization so the editor
 			// knows what's in the galleries
 			$regex = get_shortcode_regex();
 
-			if( preg_match_all( '/' . $regex . '/', $post->post_content, $matches ) ) {
+			if( $post && preg_match_all( '/' . $regex . '/', $post->post_content, $matches ) ) {
 				foreach( $matches as $match ) {
 					if( $match[2] == 'gallery' ) {
 						$atts = parse_shortcode_atts( $match[3] );

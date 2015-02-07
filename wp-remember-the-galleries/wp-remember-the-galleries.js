@@ -361,4 +361,27 @@
 		}
 	}
 
+	// Pop up media manager with a gallery loaded
+	$('body').on('click', '.open-gallery-edit', function() {
+		var ids = $(this).data('ids').split(',');
+		var attachments = [];
+
+		_.each(ids, function(id) {
+			var attachment = media.model.Attachment.get(id);
+			attachment.fetch();
+			attachments.push(attachment);
+		});
+
+		var selection = new media.model.Selection(attachments, { multiple: true });
+
+		wp.media.frame = new GalleryFrame({
+			id: 'library-gallery',
+			selection: selection,
+			library: media.query({ type: 'image' }),
+			title: "Edit Gallery"
+		});
+
+		wp.media.frame.open();
+
+	});
 })(jQuery);
