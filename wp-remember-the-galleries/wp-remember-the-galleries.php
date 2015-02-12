@@ -119,9 +119,10 @@ class WP_Remember_The_Galleries {
 	 */
 	function render_custom_columns( $row, $column_name, $term_id ) {
 		if( $column_name === 'images' ) {
+			$term = get_term( $term_id, self::entity );
 			$objects = get_objects_in_term( $term_id, self::entity );
 
-			return '<a class="open-gallery-edit" href="javascript:void(0);" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . count( $objects ) . '</a>';
+			return '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . count( $objects ) . '</a>';
 		}
 	}
 
@@ -309,6 +310,11 @@ class WP_Remember_The_Galleries {
 		}
 
 		$galleries = get_terms( self::entity, $get_term_args );
+
+		// Add ids for quick loading
+		foreach( $galleries as $gallery ) {
+			$gallery->ids = get_objects_in_term( $gallery->term_id, $gallery->taxonomy );
+		}
 
 		wp_send_json_success( $galleries );
 	}

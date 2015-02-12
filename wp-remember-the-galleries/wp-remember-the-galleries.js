@@ -59,88 +59,103 @@
 	/**
 	 * Specify a gallery name using UI autocomplete
 	 */
-	var GalleryName = media.View.extend({
+	var GalleryName = media.view.PriorityList.extend({
 		template: media.template('gallery-selection'),
 
 		initialize: function() {
 			this.model.on('change:readonly', this.updateDisabled, this);
+			this.model.on('change:name', this.updateButton, this);
 
 			this.loadButton = new media.view.Button({
-				className: 'gallery-load-button',
 				text: "Load",
 			});
 
-			this.views.add('loadButton', this.loadButton);
+			this.views.add('.gallery-load-button', this.loadButton);
+
 			this.loadButton.$el.hide();
 		},
 
-		events: {
-			'click .gallery-load-button': 'galleryLoad'
+		updateButton: function() {
+			if(self.selected && self.selected.name != this.value) {
+				loadButton.$el.hide();
+				self.selected = false;
+			}
 		},
 
-		ready: function() {
+		events: {
+			'click .gallery-load-button .button': 'loadGallery',
+			'keyup input': 'updateName'
+		},
+
+		prepare: function() {
+			return this.model.toJSON();
+		},
+
+		updateName: function() {
+			this.model.set('name', this.$input.val());
+		},
+
+		render: function() {
+			media.View.prototype.render.apply(this, arguments);
+
 			var $form = this.$el;
 			var model = this.model;
 			var loadButton = this.loadButton;
 			var items = new Backbone.Collection();
+			var self = this;
+			this.$input = this.$el.find('input[type="text"]');
+			this.$input.autocomplete({
+				source: function(request, response) {
+					wp.ajax.post('rtg_gallery_search', { term: request.term })
+						.done(function(data) {
+							response(_.map(data, function(v) {
+								v.id = v.name;
 
-			if(!this.$input) {
-				this.$input = this.$el.find('input[type="text"]');
+								var itemModel = new Backbone.Model(v);
 
-				this.$input.autocomplete({
-					source: function(request, response) {
-						wp.ajax.post('rtg_gallery_search', { term: request.term })
-							.done(function(data) {
-								response(_.map(data, function(v) {
-									v.id = v.name;
+								items.remove(v.id);
+								items.add(itemModel);
 
-									var itemModel = new Backbone.Model(v);
-
-									items.remove(v.id);
-									items.add(itemModel);
-
-									return {
-										label: v.name,
-										value: v.name,
-										model: itemModel
-									}
-								}));
-							})
-							.fail(function(data) {
-								response([]);
-							});
-					},
-					change: function(ev, ui) {
-						model.set('name', this.value);
-					},
-					select: function(ev, ui) {
-						if(ui.item.model.get('count') > 0) {
-							loadButton.$el.show();
-						}
-						else {
+								return {
+									label: v.name,
+									value: v.name,
+									model: itemModel
+								}
+							}));
 							loadButton.$el.hide();
-						}
-					},
-					minLength: 0,
-				}).data('ui-autocomplete')._renderItem = function(ul, item) {
-					item.model.view = new GalleryResult({
-						model: item.model
-					}).render();
-
-					item.model.view.$el.appendTo(ul);
-
-					return item.model.view.$el;
-				};
-
-				this.$input.on('keyup', function() {
+						})
+						.fail(function(data) {
+							response([]);
+						});
+				},
+				change: function(ev, ui) {
 					model.set('name', this.value);
-				});
-			}
+				},
+				select: function(ev, ui) {
+					self.selected = ui.item.model;
+					model.set('name', self.selected.get('name'));
 
-			this.model.trigger('change:readonly', this.model.get('readonly'));
+					if(ui.item.model.get('count') > 0) {
+						loadButton.$el.show();
+					}
+					else {
+						loadButton.$el.hide();
+					}
+					self.render();
+				},
+				minLength: 0,
+			}).data('ui-autocomplete')._renderItem = function(ul, item) {
+				item.model.view = new GalleryResult({
+					model: item.model
+				}).render();
+
+				item.model.view.$el.appendTo(ul);
+
+				return item.model.view.$el;
+			};
 		},
 
-		updateDisabled: function(val, model) {
+		updateDisabled: function(model, val) {
 			if(val) {
 				this.$input.attr('disabled', 'disabled');
 				this.$input.attr('placeholder', wpRememberTheGalleries['new-gallery']);
@@ -151,7 +166,14 @@
 			}
 		},
 
-		loadGallery: function(gallery) {
+		loadGallery: function() {
+			if(this.selected) {
+				this.controller.setIds(this.selected.get('ids'));
+				this.loadButton.$el.hide();
+			}
+		},
+
+		get: function() {
 		}
 	});
 
@@ -161,11 +183,10 @@
 	var GalleryPostFrame = function(parent) {
 		return {
 			initialize: function() {
-				parent.prototype.initialize.apply(this, arguments)
+				this.galleryDetails = this.options.galleryDetails;
 
 				if(!this.galleryDetails) {
 					this.galleryDetails = new Backbone.Model();
-					this.galleryDetails.on('change:name', this.updateButtonState, this);
 				}
 
 				if(!this.options.router) {
@@ -174,6 +195,31 @@
 						model: this.galleryDetails
 					});
 				}
+
+				parent.prototype.initialize.apply(this, arguments)
+			},
+
+			updateGalleryIds: function(model, ids) {
+				this.setIds(ids);
+			},
+
+			setIds: function(ids) {
+				if(!this.content.get('gallery')) {
+					return;
+				}
+
+				var attachments = new Backbone.Collection();
+
+				_.each(ids, function(id) {
+					var attachment = media.model.Attachment.get(id);
+					attachment.fetch();
+					attachments.add(attachment);
+				});
+
+				var collection = this.content.get('gallery').collection;
+
+				collection.reset();
+				collection.unobserve().observe(attachments).props.set({ignore: (+ new Date())});
 			},
 
 			bindHandlers: function() {
@@ -183,6 +229,13 @@
 				this.on( 'menu:create:gallery', this.createMenu, this );
 				this.on( 'router:create:gallery-select', this.createGalleryRouter, this );
 				this.on( 'router:render:gallery-select', this.renderGalleryRouter, this );
+
+				this.on( 'open', this.ready, this );
+
+				if(this.galleryDetails) {
+					this.galleryDetails.on('change:name', this.updateButtonState, this);
+					this.galleryDetails.on('change:ids', this.updateGalleryIds, this);
+				}
 			},
 
 			createGalleryRouter: function( router ) {
@@ -222,6 +275,7 @@
 							if(confirm(wpRememberTheGalleries['are-you-sure'])) {
 								saveData.yes = true;
 								save();
+								location.reload();
 							}
 						}
 						else {
@@ -241,7 +295,7 @@
 					this.toolbar.set(new media.view.Toolbar({ controller: this }));
 				}
 
-				this.saveButton = new media.view.Button({
+				this.saveGalleryButton = new media.view.Button({
 					click: function() {
 						this.controller.saveGallery();
 					},
@@ -252,16 +306,17 @@
 				});
 
 				this.toolbar.get().set({
-					'save-gallery': this.saveButton
+					'save-gallery': this.saveGalleryButton
 				});
 			},
 
 			updateButtonState: function() {
-				this.saveButton.model.set('disabled', !this.galleryDetails.get('name'));
+				this.saveGalleryButton && this.saveGalleryButton.model.set('disabled', !this.galleryDetails.get('name'));
 			},
 
 			ready: function() {
 				this.updateButtonState();
+				this.setIds(this.galleryDetails.get('ids'));
 			}
 		};
 	}
@@ -363,25 +418,25 @@
 
 	// Pop up media manager with a gallery loaded
 	$('body').on('click', '.open-gallery-edit', function() {
+		var name = $(this).data('name');
 		var ids = $(this).data('ids').split(',');
-		var attachments = [];
+		var term_id = $(this).data('term_id');
 
-		_.each(ids, function(id) {
-			var attachment = media.model.Attachment.get(id);
-			attachment.fetch();
-			attachments.push(attachment);
-		});
+		if(!wp.media.frame) {
+			wp.media.frame = new GalleryFrame({
+				id: 'library-gallery',
+				selection: new media.model.Selection([], { multiple: true }),
+				library: media.query({ type: 'image' }),
+				title: "Edit Gallery"
+			});
+		}
 
-		var selection = new media.model.Selection(attachments, { multiple: true });
-
-		wp.media.frame = new GalleryFrame({
-			id: 'library-gallery',
-			selection: selection,
-			library: media.query({ type: 'image' }),
-			title: "Edit Gallery"
+		wp.media.frame.galleryDetails.set({
+			id: term_id,
+			name: name,
+			ids: ids
 		});
 
 		wp.media.frame.open();
-
 	});
 })(jQuery);

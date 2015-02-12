@@ -1,6 +1,7 @@
 <script type="text/html" id="tmpl-gallery-selection">
 	<div class="gallery-name-container ui-front">
-		<input type="text" class="widefat" id="gallery-name-select" class="gallery-name-select" placeholder="Select gallery or name a new gallery" />
+		<input type="text" class="widefat" id="gallery-name-select" class="gallery-name-select" placeholder="Select gallery or name a new gallery" value="{{ data.name }}" />
+		<div class="gallery-load-button"></div>
 	</div>
 </script>
 
