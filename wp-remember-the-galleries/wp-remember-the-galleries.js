@@ -64,7 +64,7 @@
 
 		initialize: function() {
 			this.model.on('change:readonly', this.updateDisabled, this);
-			this.model.on('change:name', this.updateButton, this);
+			this.model.on('change:name', this.render, this);
 
 			this.loadButton = new media.view.Button({
 				text: "Load",
@@ -92,7 +92,8 @@
 		},
 
 		updateName: function() {
-			this.model.set('name', this.$input.val());
+			this.model.set('name', this.$input.val(), { silent: true });
+			this.updateButton();
 		},
 
 		render: function() {
@@ -230,7 +231,8 @@
 				this.on( 'router:create:gallery-select', this.createGalleryRouter, this );
 				this.on( 'router:render:gallery-select', this.renderGalleryRouter, this );
 
-				this.on( 'open', this.ready, this );
+				this.on( 'open', this.activate, this );
+				this.state('gallery-edit').on('activate', this.activate, this);
 
 				if(this.galleryDetails) {
 					this.galleryDetails.on('change:name', this.updateButtonState, this);
@@ -267,6 +269,7 @@
 				var save = function() {
 					media.post('rtg_save_gallery', saveData).done(function(data) {
 						media.frame && media.frame.close();
+						location.reload();
 					}).fail(function(data) {
 						if(data === 'empty-name') {
 							this.router.get().$el.find('input').focus();
@@ -275,7 +278,6 @@
 							if(confirm(wpRememberTheGalleries['are-you-sure'])) {
 								saveData.yes = true;
 								save();
-								location.reload();
 							}
 						}
 						else {
@@ -314,7 +316,9 @@
 				this.saveGalleryButton && this.saveGalleryButton.model.set('disabled', !this.galleryDetails.get('name'));
 			},
 
-			ready: function() {
+			activate: function() {
+				parent.prototype.activate && parent.prototype.activate.apply(this, arguments);
+
 				this.updateButtonState();
 				this.setIds(this.galleryDetails.get('ids'));
 			}
@@ -396,6 +400,10 @@
 							title: "Select Gallery"
 						});
 
+						wp.media.frame.galleryDetails.set({
+							ids: this.controller.state().get('selection').pluck('id'),
+						});
+
 						wp.media.frame.open();
 					}
 				}).render() );
@@ -416,7 +424,8 @@
 		}
 	}
 
-	// Pop up media manager with a gallery loaded
+	// Pop up media manager with a gallery loaded on Media Library bulk select
+	// screen
 	$('body').on('click', '.open-gallery-edit', function() {
 		var name = $(this).data('name');
 		var ids = $(this).data('ids').split(',');
@@ -438,5 +447,22 @@
 		});
 
 		wp.media.frame.open();
+	});
+
+	// Pop up media manager with edit gallery screen selected, for creating
+	// new galleries from the gallery list screen. We want to discourage
+	// usage of the "edit post" screen for galleries, at least for now.
+	$('body.post-type-wp_rtg').on('click', '.add-new-h2', function(ev) {
+		wp.media.frame = new GalleryFrame({
+			id: 'library-gallery',
+			selection: new media.model.Selection([], { multiple: true }),
+			library: media.query({ type: 'image' }),
+			title: "Edit Gallery"
+		});
+
+		wp.media.frame.open();
+
+		ev.stopPropagation();
+		ev.preventDefault();
 	});
 })(jQuery);

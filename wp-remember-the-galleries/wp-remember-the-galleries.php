@@ -54,11 +54,14 @@ class WP_Remember_The_Galleries {
 		add_action( 'wp_ajax_rtg_save_gallery', array( $c, 'save_gallery' ) );
 		add_action( 'wp_ajax_rtg_gallery_search', array( $c, 'gallery_search' ) );
 
+		add_action( 'admin_menu', array( $c, 'admin_menu' ) );
+
 		// Accept 'slug' in [gallery] shortcode and emit a saved gallery
 		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 2 );
 
-		add_filter( 'manage_' . self::entity . '_custom_column', array( $c, 'render_custom_columns' ), 15, 3 );
+		add_filter( 'manage_' . self::entity . '_posts_custom_column', array( $c, 'render_custom_columns' ), 15, 2 );
 		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
+		add_filter( 'post_row_actions', array( $c, 'post_row_actions' ), 10, 2 );
 
 		$labels = array(
 			'name'              => __( "Galleries" ),
@@ -76,10 +79,10 @@ class WP_Remember_The_Galleries {
 
 		register_post_type( self::entity, array(
 			'labels' => $labels,
-			'show_ui' => false,
+			'show_ui' => true,
 			'public' => true,
-			'menu_position' => 9,
 			'map_meta_cap' => true,
+			'menu_position' => 21,
 			'supports' => array(
 				'title',
 				'editor',
@@ -93,16 +96,32 @@ class WP_Remember_The_Galleries {
 
 		register_taxonomy( self::entity, 'attachment', array(
 			'labels'        => $labels,
-			'public'        => true,
-			'show_in_nav_menus' => false,
-			'show_ui'       => true,
-			'capabilities'  => array(
-				'manage_terms' => 'manage_' . self::entity,
-				'edit_terms'   => 'edit_' . self::entity,
-				'delete_terms' => 'delete_' . self::entity,
-				'assign_terms' => 'edit_posts'
-			)
+			'public'        => false,
 		) );
+	}
+
+	static function post_row_actions( $actions, $post ) {
+		if( $post->post_type == self::entity ) {
+			$term = get_term_by( 'slug', self::entity . '-' . $post->ID, self::entity );
+
+			if( $term ) {
+				$objects = self::get_attachments( $term->term_id );
+
+				$actions['edit'] = '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">Edit</a>"';
+			}
+		}
+
+		return $actions;
+	}
+
+	/**
+	 */
+	static function admin_menu() {
+		global $submenu;
+
+		$menu = remove_menu_page( 'edit.php?post_type=' . self::entity );
+
+		$submenu['upload.php'][] = array_slice( $menu, 0, 3 );
 	}
 
 	/**
@@ -110,19 +129,35 @@ class WP_Remember_The_Galleries {
 	 */
 	static function manage_columns( $columns ) {
 		unset( $columns['posts'] );
-		$columns['images'] = __( "Images" );
-		return $columns;
+		return array(
+			'cb' => $columns['cb'],
+			'title' => $columns['title'],
+			'images' => __( "Images" ),
+			'date' => $columns['date']
+		);
 	}
 
 	/**
 	 * Render "Image" column
 	 */
-	function render_custom_columns( $row, $column_name, $term_id ) {
-		if( $column_name === 'images' ) {
-			$term = get_term( $term_id, self::entity );
-			$objects = get_objects_in_term( $term_id, self::entity );
+	static function render_custom_columns( $column, $post_id ) {
+		if( $column === 'images' ) {
+			$objects = get_post_meta( $post_id, 'order', true );
+			$term = get_term_by( 'slug', self::entity . '-' . $post_id, self::entity );
 
-			return '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . count( $objects ) . '</a>';
+			if( $objects ) {
+				echo '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . count( $objects ) . "<br/>";
+
+				foreach( array_slice( $objects, 0, 10 ) as $attachment_id ) {
+					echo '<img width="40" src="' . esc_url( wp_get_attachment_thumb_url( $attachment_id ) ) . '" />&nbsp;';
+				}
+
+				if( count( $objects ) > 10 ) {
+					echo '&nbsp;&hellip;';
+				}
+
+				echo '</a>';
+			}
 		}
 	}
 
@@ -158,7 +193,7 @@ class WP_Remember_The_Galleries {
 		);
 
 		if( $current_screen->id === 'upload' || $current_screen->id === 'post' ||
-				( $current_screen->base === 'edit-tags' && $current_screen->taxonomy == self::entity ) ) {
+				( $current_screen->base === 'edit' && $current_screen->post_type == self::entity ) ) {
 			global $post;
 
 			// Detect shortcode slugs and add them to the localization so the editor
@@ -228,26 +263,43 @@ class WP_Remember_The_Galleries {
 			wp_send_json_error( 'empty-name' );
 		}
 
+		// Get or insert the appropriate term for this gallery
 		$term_info = term_exists( $gallery_name, self::entity );
 
 		if( !isset( $term_info['term_id'] ) ) {
-			$term_info = wp_insert_term( $gallery_name, self::entity );
-		}
+			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '--' ) );
 
-		if( is_wp_error( $term_info ) ) {
-			wp_send_json_error( $term_info );
+			if( is_wp_error( $term_info ) ) {
+				wp_send_json_error( $term_info );
+			}
 		}
 
 		$term = get_term( $term_info['term_id'], self::entity );
 
-		$post_id = self::get_post_id( $term );
+		$post_query = new WP_Query( array(
+			'post_type' => self::entity,
+			'tax_query' => array( array(
+				'taxonomy' => self::entity,
+				'terms' => (int) $term_info['term_id'],
+				'field' => 'ids'
+			) ),
+			'post_status' => 'any',
+			'fields' => 'ids',
+			'posts_per_page' => 1
+		) );
 
-		if( !$post_id ) {
+		if( $post_query->posts ) {
+			$post_id = reset( $post_query->posts );
+		}
+		else {
 			$post_id = wp_insert_post( array(
+				'post_title' => $gallery_name,
 				'post_type' => self::entity,
-				'post_name' => $post_name,
-				'post_title' => $gallery_name
+				'post_status' => 'publish'
 			) );
+
+			wp_update_term( $term->term_id, $term->taxonomy, array( 'slug' => self::entity . '-' . $post_id ) );
+			wp_set_object_terms( $post_id, $term->term_id, $term->taxonomy );
 		}
 
 		if( is_wp_error( $post_id ) ) {
@@ -269,14 +321,14 @@ class WP_Remember_The_Galleries {
 			}
 		}
 
-		$objects = get_objects_in_term( $term->term_id, self::entity );
+		$objects = self::get_attachments( $term_info['term_id'] );
 
 		if( !empty( $objects ) && !isset( $_POST['yes'] ) ) {
 			wp_send_json_error( 'need-confirm' );
 		}
 
 		foreach( $ids as $id ) {
-			wp_set_object_terms( (int) $id, (int) $term->term_id, self::entity, true );
+			wp_set_object_terms( (int) $id, (int) $term_info['term_id'], self::entity, true );
 		}
 
 		update_post_meta( $post_id, 'order', $ids );
@@ -286,8 +338,21 @@ class WP_Remember_The_Galleries {
 			update_post_meta( $post_id, 'settings', $captions );
 		}
 
-		_update_generic_term_count( $term->term_id, $term->taxonomy );
+		_update_generic_term_count( $term_info['term_id'], $term->taxonomy );
 		wp_send_json_success( 'gallery-saved' );
+	}
+
+	/**
+	 * Get the attachments associated with a particular gallery, by term ID
+	 */
+	static function get_attachments( $term_id ) {
+		$term = get_term( $term_id, self::entity );
+		$object_ids = get_objects_in_term( $term->term_id, self::entity );
+
+		// $post_id is encoded into term slug
+		$post_id = substr( $term->slug, strlen( self::entity ) + 1 );
+
+		return array_diff( $object_ids, array( $post_id ) );
 	}
 
 	/**
@@ -313,9 +378,10 @@ class WP_Remember_The_Galleries {
 
 		// Add ids for quick loading
 		foreach( $galleries as $gallery ) {
-			$gallery->ids = get_objects_in_term( $gallery->term_id, $gallery->taxonomy );
+			$gallery->ids = self::get_attachments( $gallery->term_id );
 		}
 
+		// Exlude associated post object from IDs
 		wp_send_json_success( $galleries );
 	}
 
