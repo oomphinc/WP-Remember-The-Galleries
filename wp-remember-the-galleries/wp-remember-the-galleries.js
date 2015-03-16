@@ -94,6 +94,7 @@
 		updateName: function() {
 			this.model.set('name', this.$input.val(), { silent: true });
 			this.updateButton();
+			this.controller.state().frame.updateButtonState();
 		},
 
 		render: function() {
@@ -436,14 +437,10 @@
 
 		if(!wp.media.frame) {
 			wp.media.frame = new GalleryFrame({
-				id: 'library-gallery',
 				selection: new media.model.Selection([], { multiple: true }),
 				library: media.query({ type: 'image' }),
-				title: "Edit Gallery"
 			});
 		}
-
-		wp.media.frame.state('library-gallery');
 
 		var details = wp.media.frame.galleryDetails;
 
@@ -459,13 +456,12 @@
 	// usage of the "edit post" screen for galleries, at least for now.
 	$('body.post-type-wp_rtg').on('click', '.add-new-h2', function(ev) {
 		wp.media.frame = new GalleryFrame({
-			id: 'library-gallery',
 			selection: new media.model.Selection([], { multiple: true }),
 			library: media.query({ type: 'image' }),
-			title: "Edit Gallery"
 		});
 
 		wp.media.frame.open();
+		wp.media.frame.setState('gallery-library');
 
 		ev.stopPropagation();
 		ev.preventDefault();
