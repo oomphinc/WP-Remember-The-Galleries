@@ -187,7 +187,11 @@
 				this.galleryDetails = this.options.galleryDetails;
 
 				if(!this.galleryDetails) {
-					this.galleryDetails = new Backbone.Model();
+					this.galleryDetails = new Backbone.Model({
+						id: null,
+						name: null,
+						ids: []
+					});
 				}
 
 				if(!this.options.router) {
@@ -320,7 +324,6 @@
 				parent.prototype.activate && parent.prototype.activate.apply(this, arguments);
 
 				this.updateButtonState();
-				this.setIds(this.galleryDetails.get('ids'));
 			}
 		};
 	}
@@ -429,7 +432,7 @@
 	$('body').on('click', '.open-gallery-edit', function() {
 		var name = $(this).data('name');
 		var ids = $(this).data('ids').split(',');
-		var term_id = $(this).data('term_id');
+		var id = $(this).data('id');
 
 		if(!wp.media.frame) {
 			wp.media.frame = new GalleryFrame({
@@ -440,13 +443,15 @@
 			});
 		}
 
-		wp.media.frame.galleryDetails.set({
-			id: term_id,
-			name: name,
-			ids: ids
-		});
+		wp.media.frame.state('library-gallery');
+
+		var details = wp.media.frame.galleryDetails;
+
+		details.set('id', id);
+		details.set('name', name);
 
 		wp.media.frame.open();
+		wp.media.frame.setIds(ids);
 	});
 
 	// Pop up media manager with edit gallery screen selected, for creating
