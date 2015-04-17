@@ -185,14 +185,19 @@
 	var GalleryPostFrame = function(parent) {
 		return {
 			initialize: function() {
-				this.galleryDetails = this.options.galleryDetails;
+				if(this.options.galleryDetails) {
+					this.galleryDetails = this.options.galleryDetails;
+				}
+				else {
+					this.galleryDetails = GalleryPostFrame.galleryDetails;
 
-				if(!this.galleryDetails) {
-					this.galleryDetails = new Backbone.Model({
-						id: null,
-						name: null,
-						ids: []
-					});
+					if(!this.galleryDetails) {
+						this.galleryDetails = GalleryPostFrame.galleryDetails = new Backbone.Model({
+							id: null,
+							name: null,
+							ids: []
+						});
+					}
 				}
 
 				if(!this.options.router) {
@@ -370,6 +375,7 @@
 		},
 
 		bindHandlers: function() {
+			this.on( 'content:create:browse', this.browseContent, this );
 			this.on( 'toolbar:render:gallery-edit', this.galleryEditToolbar, this );
 			this.on( 'toolbar:render:gallery-add', media.view.MediaFrame.Post.prototype.galleryAddToolbar, this );
 		},
@@ -431,7 +437,7 @@
 	// screen
 	$('body').on('click', '.open-gallery-edit', function() {
 		var name = $(this).data('name');
-		var ids = $(this).data('ids').split(',');
+		var ids = ($(this).data('ids') + "").split(',');
 		var id = $(this).data('id');
 
 		if(!wp.media.frame) {
