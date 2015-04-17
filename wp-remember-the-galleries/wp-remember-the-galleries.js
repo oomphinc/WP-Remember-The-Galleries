@@ -231,7 +231,6 @@
 			bindHandlers: function() {
 				parent.prototype.bindHandlers && parent.prototype.bindHandlers.apply(this, arguments);
 
-				this.on( 'content:create:browse', this.browseContent, this );
 				this.on( 'menu:create:gallery', this.createMenu, this );
 				this.on( 'router:create:gallery-select', this.createGalleryRouter, this );
 				this.on( 'router:render:gallery-select', this.renderGalleryRouter, this );
