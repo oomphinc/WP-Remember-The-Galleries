@@ -352,7 +352,11 @@ class WP_Remember_The_Galleries {
 		// $post_id is encoded into term slug
 		$post_id = substr( $term->slug, strlen( self::entity ) + 1 );
 
-		return array_diff( $object_ids, array( $post_id ) );
+		$order = get_post_meta( $post_id, 'order', true );
+
+		$ids = array_intersect( $order, array_diff( $object_ids, array( $post_id ) ) );
+
+		return $ids;
 	}
 
 	/**
