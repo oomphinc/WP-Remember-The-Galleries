@@ -53,6 +53,7 @@ class WP_Remember_The_Galleries {
 
 		add_action( 'wp_ajax_rtg_save_gallery', array( $c, 'save_gallery' ) );
 		add_action( 'wp_ajax_rtg_gallery_search', array( $c, 'gallery_search' ) );
+		add_action( 'wp_ajax_rtg_query_attachments', array( $c, 'query_attachments' ) );
 
 		add_action( 'admin_menu', array( $c, 'admin_menu' ) );
 
@@ -98,6 +99,26 @@ class WP_Remember_The_Galleries {
 			'labels'        => $labels,
 			'public'        => false,
 		) );
+	}
+
+	static function query_attachments() {
+		if( !isset( $_REQUEST['ids'] ) || !is_array( $_REQUEST['ids'] ) ) {
+			wp_send_json_error();
+		}
+
+		$ids = array_filter( array_unique( array_map( 'absint', $_REQUEST['ids'] ) ) );
+
+		if( !current_user_can( 'upload_files' ) ) {
+			wp_send_json_error();
+		}
+
+		$result = array();
+
+		foreach( $ids as $id ) {
+			$result[] = wp_prepare_attachment_for_js( $id );
+		}
+
+		wp_send_json_success( $result );
 	}
 
 	static function post_row_actions( $actions, $post ) {

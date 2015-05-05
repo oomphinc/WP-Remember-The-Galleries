@@ -182,6 +182,20 @@
 	media.controller.GalleryEdit.prototype.defaults.router = 'gallery-select';
 	media.controller.GalleryAdd.prototype.defaults.router = 'gallery-select';
 
+	var GalleryAttachments = media.model.Attachments.extend({
+		sync: function( method, collection, options ) {
+			if( 'read' === method ) {
+				options.data = _.extend(options.data || {}, {
+					'action': 'rtg_query_attachments',
+					ids: collection.pluck('id')
+				});
+
+				return wp.media.ajax(options);
+			}
+		}
+
+	});
+
 	var GalleryPostFrame = function(parent) {
 		return {
 			initialize: function() {
@@ -219,13 +233,11 @@
 					return;
 				}
 
-				var attachments = new Backbone.Collection();
+				var attachments = new GalleryAttachments(_.map(ids, function(id) {
+					return { id: id };
+				}));
 
-				_.each(ids, function(id) {
-					var attachment = media.model.Attachment.get(id);
-					attachment.fetch();
-					attachments.add(attachment);
-				});
+				attachments.fetch();
 
 				var collection = this.content.get('gallery').collection;
 
