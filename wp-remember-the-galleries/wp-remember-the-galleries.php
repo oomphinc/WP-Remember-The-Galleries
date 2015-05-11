@@ -58,7 +58,7 @@ class WP_Remember_The_Galleries {
 		add_action( 'admin_menu', array( $c, 'admin_menu' ) );
 
 		// Accept 'slug' in [gallery] shortcode and emit a saved gallery
-		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 2 );
+		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 3 );
 
 		add_filter( 'manage_' . self::entity . '_posts_custom_column', array( $c, 'render_custom_columns' ), 15, 2 );
 		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
@@ -422,6 +422,8 @@ class WP_Remember_The_Galleries {
 				$out['ids'] = join(',', $order);
 			}
 		}
+
+		return $out;
 	}
 
 	// Return the post ID for a gallery term, if any
