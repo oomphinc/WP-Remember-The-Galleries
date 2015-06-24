@@ -297,22 +297,17 @@ class WP_Remember_The_Galleries {
 
 		$term = get_term( $term_info['term_id'], self::entity );
 
-		$post_query = new WP_Query( array(
-			'post_type' => self::entity,
-			'tax_query' => array( array(
-				'taxonomy' => self::entity,
-				'terms' => (int) $term_info['term_id'],
-				'field' => 'ids'
-			) ),
-			'post_status' => 'any',
-			'fields' => 'ids',
-			'posts_per_page' => 1
-		) );
+		// Get the ID out of the term slug:
+		if( preg_match( '/^' . self::entity . '-(\d+)$/', $term->slug, $matches ) ) {
+			$post = get_post( (int) $matches[1] );
 
-		if( $post_query->posts ) {
-			$post_id = reset( $post_query->posts );
+			// Ensure this is the right kind of post. If not, just create a new one.
+			if( $post->post_type == self::entity ) {
+				$post_id = $post->ID;
+			}
 		}
-		else {
+
+		if( !isset( $post_id ) ) {
 			$post_id = wp_insert_post( array(
 				'post_title' => $gallery_name,
 				'post_type' => self::entity,
