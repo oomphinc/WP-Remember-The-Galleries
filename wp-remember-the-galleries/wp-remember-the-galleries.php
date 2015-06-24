@@ -302,7 +302,7 @@ class WP_Remember_The_Galleries {
 			$post = get_post( (int) $matches[1] );
 
 			// Ensure this is the right kind of post. If not, just create a new one.
-			if( $post->post_type == self::entity ) {
+			if( $post && $post->post_type == self::entity ) {
 				$post_id = $post->ID;
 			}
 		}
