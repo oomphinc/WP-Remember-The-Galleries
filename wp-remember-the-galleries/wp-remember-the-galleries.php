@@ -91,7 +91,6 @@ class WP_Remember_The_Galleries {
 			),
 			'hierarchical' => false,
 			'has_archive' => false,
-			'capability_type' => self::entity,
 			'taxonomies' => array(),
 		) );
 
