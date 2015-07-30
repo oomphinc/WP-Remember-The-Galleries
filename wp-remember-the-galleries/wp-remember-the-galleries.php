@@ -54,6 +54,7 @@ class WP_Remember_The_Galleries {
 		add_action( 'wp_ajax_rtg_save_gallery', array( $c, 'save_gallery' ) );
 		add_action( 'wp_ajax_rtg_gallery_search', array( $c, 'gallery_search' ) );
 		add_action( 'wp_ajax_rtg_query_attachments', array( $c, 'query_attachments' ) );
+		add_action( 'init', array( $c, 'action_init_post_type' ) );
 
 		add_action( 'admin_menu', array( $c, 'admin_menu' ) );
 
@@ -63,7 +64,9 @@ class WP_Remember_The_Galleries {
 		add_filter( 'manage_' . self::entity . '_posts_custom_column', array( $c, 'render_custom_columns' ), 15, 2 );
 		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
 		add_filter( 'post_row_actions', array( $c, 'post_row_actions' ), 10, 2 );
+	}
 
+	static function action_init_post_type() {
 		$labels = array(
 			'name'              => __( "Galleries" ),
 			'singular_name'     => __( "Gallery" ),
