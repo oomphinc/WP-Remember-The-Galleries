@@ -201,7 +201,7 @@ class WP_Remember_The_Galleries {
 	static function enqueue_scripts() {
 		global $current_screen;
 
-		wp_register_script( 'wp-rtg', plugins_url( 'wp-remember-the-galleries.js', basename( __DIR__ ) ), array( 'jquery-ui-autocomplete' ), 1, true );
+		wp_register_script( 'wp-rtg', plugins_url(  basename( __DIR__ ) .'/wp-remember-the-galleries.js' ), array( 'jquery-ui-autocomplete' ), 1, true );
 
 		$js_object = array(
 			'select-gallery' => __( "Select gallery or name a new gallery..." ),
@@ -241,7 +241,7 @@ class WP_Remember_The_Galleries {
 
 			wp_enqueue_media();
 			wp_enqueue_script( 'wp-rtg' );
-			wp_enqueue_style( 'wp-rtg', plugins_url( 'rtg-admin.css', basename( __DIR__ ) ), array(), 1 );
+			wp_enqueue_style( 'wp-rtg', plugins_url( basename( __DIR__ ) . '/rtg-admin.css' ), array(), 1 );
 		}
 
 		wp_localize_script( 'wp-rtg', 'wpRememberTheGalleries',  $js_object );
