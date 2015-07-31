@@ -194,6 +194,34 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
+	 * Gets the base URL to the library with an optional file path appended to it.
+	 *
+	 * Assumes this is a standard installed plugin to determine the proper base URL path for assets.
+	 * If it is not, the wp_form_base_url filter should be used to alter the path.
+	 *
+	 * More info:
+	 *
+	 * There are times when hosting company's use symlinks to point to theme
+	 * and plugin directories and, unfortunately, these symlinks break wp core
+	 * functions. If you are having issues with wp-forms-api CSS and JS files
+	 * not loading, you can set the base URL to your plugin or theme using
+	 * this method.
+	 *
+	 * @access public
+	 *
+	 * @param string $file Optional.
+	 *
+	 * @return string
+	 */
+	static function url( $file = '' ) {
+		$filepath = ltrim( $file, '/' );
+
+		$url = trailingslashit( apply_filters( 'wp_rtg_base_url', plugins_url( '/', __FILE__ ) ) );
+
+		return $url . $filepath;
+	}
+
+	/**
 	 * Register and enqueue gallery management scripts.
 	 *
 	 * @action init
@@ -201,7 +229,7 @@ class WP_Remember_The_Galleries {
 	static function enqueue_scripts() {
 		global $current_screen;
 
-		wp_register_script( 'wp-rtg', plugins_url(  basename( __DIR__ ) .'/wp-remember-the-galleries.js' ), array( 'jquery-ui-autocomplete' ), 1, true );
+		wp_register_script( 'wp-rtg', self::url( 'wp-remember-the-galleries.js' ), array( 'jquery-ui-autocomplete' ), 1, true );
 
 		$js_object = array(
 			'select-gallery' => __( "Select gallery or name a new gallery..." ),
@@ -241,7 +269,7 @@ class WP_Remember_The_Galleries {
 
 			wp_enqueue_media();
 			wp_enqueue_script( 'wp-rtg' );
-			wp_enqueue_style( 'wp-rtg', plugins_url( basename( __DIR__ ) . '/rtg-admin.css' ), array(), 1 );
+			wp_enqueue_style( 'wp-rtg', self::url( '/rtg-admin.css' ), array(), 1 );
 		}
 
 		wp_localize_script( 'wp-rtg', 'wpRememberTheGalleries',  $js_object );
