@@ -45,6 +45,17 @@
 	});
 
 	/**
+	 * A gallery selection box
+	 */
+	var GallerySelect = media.View.extend({
+		className: 'gallery-select-list',
+		template: media.template('gallery-select'),
+		initialize: function() {
+			this.$el.hide();
+		},
+	});
+
+	/**
 	 * A gallery autocomplete result
 	 */
 	var GalleryResult = media.View.extend({
@@ -62,51 +73,39 @@
 	var GalleryName = media.view.PriorityList.extend({
 		template: media.template('gallery-selection'),
 
-		initialize: function() {
-			this.model.on('change:readonly', this.updateDisabled, this);
-			this.model.on('change:name', this.render, this);
-
-			this.loadButton = new media.view.Button({
-				text: "Load",
-			});
-
-			this.views.add('.gallery-load-button', this.loadButton);
-
-			this.loadButton.$el.hide();
-		},
-
-		updateButton: function() {
-			if(self.selected && self.selected.name != this.value) {
-				loadButton.$el.hide();
-				self.selected = false;
-			}
-		},
-
 		events: {
-			'click .gallery-load-button .button': 'loadGallery',
+			'click .gallery-select-button .button': 'selectGalleryPopup',
 			'keyup input': 'updateName'
 		},
 
-		prepare: function() {
-			return this.model.toJSON();
+		initialize: function() {
+			this.model.on('change:library', this.render, this);
+
+			this.selectButton = new media.view.Button({
+				text: wpRememberTheGalleries['load']
+			});
+
+			this.views.add('.gallery-select-button', this.selectButton);
 		},
 
-		updateName: function() {
-			this.model.set('name', this.$input.val(), { silent: true });
-			this.updateButton();
-			this.controller.state().frame.updateButtonState();
-		},
+		selectGalleryPopup: function() {
 
-		render: function() {
-			media.View.prototype.render.apply(this, arguments);
+			if(!this.selectPopup) {
+				this.selectPopup = new GallerySelect();
+				this.selectPopup.on('select', this.selectGallery);
+				this.selectButton.model.set('text', wpRememberTheGalleries['cancel']);
+				this.views.add('.gallery-select-container', this.selectPopup);
+			}
+			else {
+				return this.cancelSelect();
+			}
 
-			var $form = this.$el;
-			var model = this.model;
-			var loadButton = this.loadButton;
-			var items = new Backbone.Collection();
-			var self = this;
-			this.$input = this.$el.find('input[type="text"]');
-			this.$input.autocomplete({
+			this.selectPopup.$el.show();
+
+			var self = this
+			  , $input = this.selectPopup.$('input');
+
+			$input.autocomplete({
 				source: function(request, response) {
 					wp.ajax.post('rtg_gallery_search', { term: request.term })
 						.done(function(data) {
@@ -115,35 +114,23 @@
 
 								var itemModel = new Backbone.Model(v);
 
-								items.remove(v.id);
-								items.add(itemModel);
-
 								return {
 									label: v.name,
 									value: v.name,
 									model: itemModel
 								}
 							}));
-							loadButton.$el.hide();
 						})
-						.fail(function(data) {
-							response([]);
-						});
-				},
-				change: function(ev, ui) {
-					model.set('name', this.value);
+					.fail(function(data) {
+						response([]);
+					});
 				},
 				select: function(ev, ui) {
-					self.selected = ui.item.model;
-					model.set('name', self.selected.get('name'));
-
-					if(ui.item.model.get('count') > 0) {
-						loadButton.$el.show();
-					}
-					else {
-						loadButton.$el.hide();
-					}
-					self.render();
+					self.selectGallery(ui.item.model);
+				},
+				position: {
+					my: 'right top',
+					at: 'right bottom'
 				},
 				minLength: 0,
 			}).data('ui-autocomplete')._renderItem = function(ul, item) {
@@ -155,23 +142,62 @@
 
 				return item.model.view.$el;
 			};
+
+			// Focus and execute initial search
+			$input.focus();
+			$input.autocomplete('search');
+
+			$input.on('keyup', function(ev) {
+				if(ev.keyCode === 27) {
+					self.cancelSelect();
+				}
+			});
 		},
 
-		updateDisabled: function(model, val) {
-			if(val) {
-				this.$input.attr('disabled', 'disabled');
-				this.$input.attr('placeholder', wpRememberTheGalleries['new-gallery']);
-			}
-			else {
-				this.$input.removeAttr('disabled');
-				this.$input.attr('placeholder', wpRememberTheGalleries['select-gallery']);
-			}
+		cancelSelect: function() {
+			this.selectPopup.remove();
+
+			delete this.selectPopup;
+
+			this.selectButton.model.set('text', wpRememberTheGalleries['load']);
 		},
 
-		loadGallery: function() {
-			if(this.selected) {
-				this.controller.setIds(this.selected.get('ids'));
-				this.loadButton.$el.hide();
+		selectGallery: function(model) {
+			this.cancelSelect();
+
+			this.model.set(model.attributes);
+			this.$('.gallery-name').val(this.model.get('name'));
+			this.controller.setIds(this.model.get('ids'));
+		},
+
+		prepare: function() {
+			return this.model.toJSON();
+		},
+
+		updateName: function(ev) {
+			this.model.set('name', this.$el.find('input[type="text"]').val());
+			this.controller.state().frame.updateButtonState();
+		},
+
+		render: function() {
+			var $input;
+
+			media.View.prototype.render.apply(this, arguments);
+
+			// When looking at the entire library, indicate that we're adding to a new
+			// or existing gallery
+			if(this.model.get('library')) {
+				this.$('.gallery-actions').hide();
+
+				$input = this.$('.gallery-name');
+
+				$input
+					.attr('disabled', 'disabled')
+					.attr('placeholder', wpRememberTheGalleries['add-new-gallery']);
+
+				if(this.model.get('id')) {
+					$input.val(wpRememberTheGalleries['add-existing'].replace(/%s/, this.model.get('name')));
+				}
 			}
 		},
 
@@ -269,10 +295,10 @@
 				var state = this.state();
 
 				if(state && state.id == 'gallery-library') {
-					this.galleryDetails.set('readonly', true);
+					this.galleryDetails.set('library', true);
 				}
 				else {
-					this.galleryDetails.unset('readonly');
+					this.galleryDetails.unset('library');
 				}
 			},
 
@@ -334,7 +360,7 @@
 			},
 
 			updateButtonState: function() {
-				this.saveGalleryButton && this.saveGalleryButton.model.set('disabled', !this.galleryDetails.get('name'));
+				this.saveGalleryButton && this.saveGalleryButton.model.set('disabled', !this.galleryDetails.get('name') || this.galleryDetails.get('rename'));
 			},
 
 			activate: function() {

@@ -204,8 +204,11 @@ class WP_Remember_The_Galleries {
 		$js_object = array(
 			'select-gallery' => __( "Select gallery or name a new gallery..." ),
 			'load-gallery' => __( "Load" ),
-			'new-gallery' => __( "New gallery..." ),
+			'add-new-gallery' => __( "Adding images to new gallery..." ),
+			'add-existing' => __( "Adding images to '%s'" ),
 			'are-you-sure' => __( "Are you sure you want to replace the images in this gallery?" ),
+			'load' => __( 'Select Gallery...', 'wp-rtg' ),
+			'cancel' => __( 'Cancel Selection', 'wp-rtg' ),
 			'errors' => array(
 				'empty-name' => __( "Empty gallery name" ),
 				'invalid-input' => __( "Missing IDs" ),

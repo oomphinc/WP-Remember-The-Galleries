@@ -1,11 +1,20 @@
 .gallery-name-container {
 	position: relative;
 }
-.gallery-load-button {
+.gallery-actions {
 	position: absolute;
 	top: 0;
 	right: 0;
+	z-index: 1;
 }
+
+.gallery-select-container {
+	position: absolute;
+	top: 0;
+	width: 100%;
+	z-index: 0;
+}
+
 .gallery-name-container .ui-menu-item {
 	padding: .25em;
 }
