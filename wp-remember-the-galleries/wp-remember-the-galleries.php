@@ -207,7 +207,8 @@ class WP_Remember_The_Galleries {
 			'add-new-gallery' => __( "Adding images to new gallery..." ),
 			'add-existing' => __( "Adding images to '%s'" ),
 			'are-you-sure' => __( "Are you sure you want to replace the images in this gallery?" ),
-			'load' => __( 'Select Gallery...', 'wp-rtg' ),
+			'gallery-name' => __( 'Gallery name', 'wp-rtg' ),
+			'select' => __( 'Select Gallery...', 'wp-rtg' ),
 			'cancel' => __( 'Cancel Selection', 'wp-rtg' ),
 			'errors' => array(
 				'empty-name' => __( "Empty gallery name" ),

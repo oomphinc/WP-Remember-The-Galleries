@@ -1,6 +1,11 @@
 .gallery-name-container {
+	display: flex;
 	position: relative;
 }
+	.media-frame .gallery-name-input {
+		padding: 2px;
+		margin-right: 5px;
+	}
 .gallery-actions {
 	position: absolute;
 	top: 0;
@@ -15,6 +20,11 @@
 	z-index: 0;
 }
 
+.gallery-frame-title {
+	float: left;
+}
+
+.gallery-select-button 
 .gallery-name-container .ui-menu-item {
 	padding: .25em;
 }

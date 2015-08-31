@@ -71,30 +71,46 @@
 	 * Specify a gallery name using UI autocomplete
 	 */
 	var GalleryName = media.view.PriorityList.extend({
-		template: media.template('gallery-selection'),
+		className: 'gallery-name-container',
 
 		events: {
-			'click .gallery-select-button .button': 'selectGalleryPopup',
-			'keyup input': 'updateName'
+			'keyup .gallery-name-input': 'updateName',
+			'click .gallery-select-button': 'selectGalleryPopup'
 		},
 
 		initialize: function() {
 			this.model.on('change:library', this.render, this);
+			this.model.on('change:name', this.updateName, this);
 
-			this.selectButton = new media.view.Button({
-				text: wpRememberTheGalleries['load']
+			this.nameInput = new media.View({
+				tagName: 'input',
+				className: 'gallery-name-input widefat',
+				attributes: {
+					placeholder: wpRememberTheGalleries['gallery-name']
+				}
 			});
 
-			this.views.add('.gallery-select-button', this.selectButton);
+			this.selectButton = new media.view.Button({
+				className: 'media-button gallery-select-button',
+				text: wpRememberTheGalleries['select']
+			});
+
+			this.nameLabel = new media.View({
+				className: 'gallery-name-label',
+				tagName: 'label'
+			});
+
+			this.views.add('', this.nameInput);
+			this.views.add('', this.nameLabel);
+			this.views.add('', this.selectButton);
 		},
 
 		selectGalleryPopup: function() {
-
 			if(!this.selectPopup) {
 				this.selectPopup = new GallerySelect();
 				this.selectPopup.on('select', this.selectGallery);
 				this.selectButton.model.set('text', wpRememberTheGalleries['cancel']);
-				this.views.add('.gallery-select-container', this.selectPopup);
+				this.views.add('', this.selectPopup);
 			}
 			else {
 				return this.cancelSelect();
@@ -175,8 +191,13 @@
 		},
 
 		updateName: function(ev) {
-			this.model.set('name', this.$el.find('input[type="text"]').val());
-			this.controller.state().frame.updateButtonState();
+			var state = this.controller.state();
+
+			this.model.set('name', this.nameInput.$el.val());
+
+			this.nameLabel.$el.text(this.model.get('name'));
+
+			state && state.frame.updateButtonState();
 		},
 
 		render: function() {
@@ -184,7 +205,7 @@
 
 			media.View.prototype.render.apply(this, arguments);
 
-			// When looking at the entire library, indicate that we're adding to a new
+			// When looking at the full library, indicate that we're adding to a new
 			// or existing gallery
 			if(this.model.get('library')) {
 				this.$('.gallery-actions').hide();
@@ -199,14 +220,16 @@
 					$input.val(wpRememberTheGalleries['add-existing'].replace(/%s/, this.model.get('name')));
 				}
 			}
+
+			this.updateName();
 		},
 
 		get: function() {
 		}
 	});
 
-	media.controller.GalleryEdit.prototype.defaults.router = 'gallery-select';
-	media.controller.GalleryAdd.prototype.defaults.router = 'gallery-select';
+	media.controller.GalleryEdit.prototype.defaults.router = 'gallery-name';
+	media.controller.GalleryAdd.prototype.defaults.router = 'gallery-name';
 
 	var GalleryAttachments = media.model.Attachments.extend({
 		sync: function( method, collection, options ) {
@@ -247,7 +270,7 @@
 					});
 				}
 
-				parent.prototype.initialize.apply(this, arguments)
+				parent.prototype.initialize.apply(this, arguments);
 			},
 
 			updateGalleryIds: function(model, ids) {
@@ -275,8 +298,8 @@
 				parent.prototype.bindHandlers && parent.prototype.bindHandlers.apply(this, arguments);
 
 				this.on( 'menu:create:gallery', this.createMenu, this );
-				this.on( 'router:create:gallery-select', this.createGalleryRouter, this );
-				this.on( 'router:render:gallery-select', this.renderGalleryRouter, this );
+				this.on( 'router:create:gallery-name', this.createGalleryRouter, this );
+				this.on( 'router:render:gallery-name', this.renderGalleryRouter, this );
 
 				this.on( 'open', this.activate, this );
 				this.state('gallery-edit').on('activate', this.activate, this);
@@ -401,11 +424,11 @@
 					library: this.options.selection,
 					editing: this.options.editing,
 					menu:    'gallery',
-					router:  'gallery-select'
+					router:  'gallery-name'
 				}),
 
 				new media.controller.GalleryAdd({
-					router: 'gallery-select'
+					router: 'gallery-name'
 				})
 			]);
 
