@@ -56,8 +56,6 @@ class WP_Remember_The_Galleries {
 		add_action( 'wp_ajax_rtg_query_attachments', array( $c, 'query_attachments' ) );
 		add_action( 'init', array( $c, 'action_init_post_type' ) );
 
-		add_action( 'admin_menu', array( $c, 'admin_menu' ) );
-
 		// Accept 'slug' in [gallery] shortcode and emit a saved gallery
 		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 3 );
 
@@ -86,7 +84,7 @@ class WP_Remember_The_Galleries {
 			'show_ui' => true,
 			'public' => true,
 			'map_meta_cap' => true,
-			'menu_position' => 21,
+			'show_in_menu' => 'upload.php',
 			'supports' => array(
 				'title',
 				'editor',
@@ -135,16 +133,6 @@ class WP_Remember_The_Galleries {
 		}
 
 		return $actions;
-	}
-
-	/**
-	 */
-	static function admin_menu() {
-		global $submenu;
-
-		$menu = remove_menu_page( 'edit.php?post_type=' . self::entity );
-
-		$submenu['upload.php'][] = array_slice( $menu, 0, 3 );
 	}
 
 	/**
