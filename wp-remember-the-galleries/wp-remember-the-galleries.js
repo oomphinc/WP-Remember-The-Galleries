@@ -471,7 +471,7 @@
 	// Pop up media manager with edit gallery screen selected, for creating
 	// new galleries from the gallery list screen. We want to discourage
 	// usage of the "edit post" screen for galleries, at least for now.
-	$('body.post-type-wp_rtg').on('click', '.add-new-h2', function(ev) {
+	$('body.post-type-wp_rtg').on('click', '.page-title-action', function(ev) {
 		wp.media.frame = new GalleryFrame({
 			selection: new media.model.Selection([], { multiple: true }),
 			library: media.query({ type: 'image' }),
