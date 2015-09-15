@@ -62,6 +62,7 @@ class WP_Remember_The_Galleries {
 		add_filter( 'manage_' . self::entity . '_posts_custom_column', array( $c, 'render_custom_columns' ), 15, 2 );
 		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
 		add_filter( 'post_row_actions', array( $c, 'post_row_actions' ), 10, 2 );
+		add_filter( 'bulk_actions-edit-wp_rtg', array( $c, 'bulk_actions' ) );
 	}
 
 	static function action_init_post_type() {
@@ -121,28 +122,14 @@ class WP_Remember_The_Galleries {
 		wp_send_json_success( $result );
 	}
 
-	static function post_row_actions( $actions, $post ) {
-		if( $post->post_type == self::entity ) {
-			$term = get_term_by( 'slug', self::entity . '-' . $post->ID, self::entity );
-
-			if( $term ) {
-				$objects = self::get_attachments( $term->term_id );
-
-				$actions['edit'] = '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">Edit</a>"';
-			}
-		}
-
-		return $actions;
-	}
-
 	/**
 	 * Insert "image" column
 	 */
 	static function manage_columns( $columns ) {
-		unset( $columns['posts'] );
+		unset( $columns['posts'], $columns['title'] );
 		return array(
 			'cb' => $columns['cb'],
-			'title' => $columns['title'],
+			'gallerytitle' => __( "Title" ),
 			'images' => __( "Images" ),
 			'date' => $columns['date']
 		);
@@ -152,23 +139,45 @@ class WP_Remember_The_Galleries {
 	 * Render "Image" column
 	 */
 	static function render_custom_columns( $column, $post_id ) {
-		if( $column === 'images' ) {
+		switch ( $column ) {
+		case 'gallerytitle' :
+		case 'images' :
 			$objects = get_post_meta( $post_id, 'order', true );
 			$term = get_term_by( 'slug', self::entity . '-' . $post_id, self::entity );
+			$label = $column == 'gallerytitle' ? $term->name : count( $objects );
+			$classes = array('open-gallery-edit');
+			$before = $after = '';
+
+			if( $column == 'gallerytitle' ) {
+				$classes[] = 'row-title';
+				$before = '<strong>';
+				$after = '</strong>';
+			}
 
 			if( $objects ) {
-				echo '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . count( $objects ) . "<br/>";
+				echo $before . '<a class="' . join( ' ', $classes ) . '" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . $label .  $after;
 
-				foreach( array_slice( $objects, 0, 10 ) as $attachment_id ) {
-					echo '<img width="40" src="' . esc_url( wp_get_attachment_thumb_url( $attachment_id ) ) . '" />&nbsp;';
-				}
+				if( $column == 'images' ) {
+					echo '<br />';
 
-				if( count( $objects ) > 10 ) {
-					echo '&nbsp;&hellip;';
+					foreach( array_slice( $objects, 0, 10 ) as $attachment_id ) {
+						echo '<img width="40" src="' . esc_url( wp_get_attachment_thumb_url( $attachment_id ) ) . '" />&nbsp;';
+					}
+
+					if( count( $objects ) > 10 ) {
+						echo '&nbsp;&hellip;';
+					}
 				}
 
 				echo '</a>';
+
+				if( $column == 'gallerytitle' ) {
+					echo '<div class="row-actions">';
+					echo '<span class="trash"><a class="submitdelete" href="' . get_delete_post_link( $post_id ) . '">' . __( 'Trash' ) . '</a></span>';
+					echo '</div>';
+				}
 			}
+			break;
 		}
 	}
 
@@ -454,6 +463,12 @@ class WP_Remember_The_Galleries {
 		if( $post_query->have_posts() ) {
 			return $post_query->next_post();
 		}
+	}
+
+	// Remove "edit from bulk actions dropdown
+	static function bulk_actions( $actions ) {
+		unset( $actions['edit'] );
+		return $actions;
 	}
 }
 WP_Remember_The_Galleries::_setup();
