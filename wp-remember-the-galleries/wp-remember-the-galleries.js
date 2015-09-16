@@ -303,7 +303,7 @@
 							}
 						}
 						else {
-							alert( "Failed!" );
+							alert( data || 'Failed!' );
 						}
 					});
 				}
