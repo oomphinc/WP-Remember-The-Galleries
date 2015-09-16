@@ -284,6 +284,7 @@
 						return { id: item.id, caption: item.caption };
 					}),
 					name: this.galleryDetails.get('name'),
+					term_id: this.galleryDetails.get('id'),
 					settings: selection.gallery.attributes
 				};
 
