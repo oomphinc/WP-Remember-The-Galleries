@@ -329,6 +329,8 @@
 					controller: this,
 				});
 
+				this.toolbar.get().unset('insert');
+
 				this.toolbar.get().set({
 					'save-gallery': this.saveGalleryButton
 				});
