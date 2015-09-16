@@ -322,6 +322,7 @@ class WP_Remember_The_Galleries {
 
 		// Does a gallery with this name already exist?
 		$term_info = term_exists( $gallery_name, self::entity );
+		$allow_rename = true;
 		if ( isset( $term_info['term_id'] ) && $term_info['term_id'] != $term_id ) {
 			// Ask user to confirm that they want to overwrite the existing gallery
 			if ( !isset( $_POST['yes'] ) ) {
@@ -329,8 +330,23 @@ class WP_Remember_The_Galleries {
 			}
 			// User has confirmed they want to overwrite the existing gallery, so let's use that term id
 			else {
+				$allow_rename = false;
 				$term_id = $term_info['term_id'];
 			}
+		}
+
+		if( !$term_id ) {
+			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
+
+			if( is_wp_error( $term_info ) ) {
+				wp_send_json_error( $term_info->get_error_message() );
+			}
+
+			$term_id = $term_info['term_id'];
+		}
+
+		if( $term_id && $allow_rename ) {
+			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) ); 
 		}
 
 		// Get the post ID associated with this term
@@ -357,19 +373,6 @@ class WP_Remember_The_Galleries {
 			if ( is_wp_error( $updated ) ) {
 				wp_send_json_error( $post_id );
 			}
-		}
-
-		if( !$term_id ) {
-			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
-
-			if( is_wp_error( $term_info ) ) {
-				wp_send_json_error( $term_info->get_error_message() );
-			}
-
-			$term_id = $term_info['term_id'];
-		}
-		else {
-			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) ); 
 		}
 
 		wp_set_object_terms( $post_id, $term_id, self::entity );
