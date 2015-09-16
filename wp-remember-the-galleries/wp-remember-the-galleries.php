@@ -403,7 +403,7 @@ class WP_Remember_The_Galleries {
 			update_post_meta( $post_id, 'settings', $captions );
 		}
 
-		_update_generic_term_count( $term_id, $term_id );
+		_update_generic_term_count( $term_id, self::entity );
 		wp_send_json_success( 'gallery-saved' );
 	}
 
