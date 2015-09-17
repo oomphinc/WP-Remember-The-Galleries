@@ -471,7 +471,7 @@
 
 		wp.media.frame.open();
 		wp.media.frame.setIds(ids);
-		wp.media.frame.setState('gallery-library');
+		wp.media.frame.setState('gallery-edit');
 	});
 
 	// Pop up media manager with edit gallery screen selected, for creating
