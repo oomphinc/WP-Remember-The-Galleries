@@ -67,6 +67,10 @@ class WP_Remember_The_Galleries {
 		add_filter( 'manage_' . self::entity . '_posts_custom_column', array( $c, 'render_custom_columns' ), 15, 2 );
 		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
 		add_filter( 'bulk_actions-edit-wp_rtg', array( $c, 'bulk_actions' ) );
+
+		if ( is_admin() ) {
+			add_filter( 'clean_url', array( $c, 'clean_url' ), 10, 3 );
+		}
 	}
 
 	static function action_init_post_type() {
@@ -508,6 +512,15 @@ class WP_Remember_The_Galleries {
 	static function bulk_actions( $actions ) {
 		unset( $actions['edit'] );
 		return $actions;
+	}
+
+	// change the "add new" url
+	static function clean_url( $clean_url, $unclean_url, $context ) {
+		if ( strpos( $clean_url, 'post-new.php?post_type=' . self::entity ) !== false ) {
+			return 'javascript:void(0);';
+		}
+
+		return $clean_url;
 	}
 }
 WP_Remember_The_Galleries::_setup();
