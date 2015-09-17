@@ -158,7 +158,7 @@
 		},
 
 		updateDisabled: function(model, val) {
-			this.render();
+			this.$input = this.$input || this.$el.find('input[type="text"]');
 
 			if(val) {
 				this.$input.prop('disabled', true);
