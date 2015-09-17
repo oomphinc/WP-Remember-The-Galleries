@@ -480,6 +480,9 @@
 			library: media.query({ type: 'image' }),
 		});
 
+		var details = wp.media.frame.galleryDetails;
+		details.clear();
+
 		wp.media.frame.open();
 		wp.media.frame.setState('gallery-library');
 
