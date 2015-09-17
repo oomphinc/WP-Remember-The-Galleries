@@ -319,7 +319,6 @@ class WP_Remember_The_Galleries {
 		}
 
 		$gallery_name = sanitize_text_field( trim( $_POST['name'] ) );
-
 		if( empty( $gallery_name ) ) {
 			wp_send_json_error( 'empty-name' );
 		}
@@ -340,23 +339,6 @@ class WP_Remember_The_Galleries {
 		}
 
 		if( !$term_id ) {
-			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
-
-			if( is_wp_error( $term_info ) ) {
-				wp_send_json_error( $term_info->get_error_message() );
-			}
-
-			$term_id = $term_info['term_id'];
-		}
-
-		if( $term_id && $allow_rename ) {
-			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) ); 
-		}
-
-		// Get the post ID associated with this term
-		$post_id = self::get_post_id( $term_id );
-		
-		if( !$post_id ) {
 			$post_id = wp_insert_post( array(
 				'post_title' => $gallery_name,
 				'post_type' => self::entity,
@@ -366,8 +348,22 @@ class WP_Remember_The_Galleries {
 			if( is_wp_error( $post_id ) ) {
 				wp_send_json_error( $post_id );
 			}
+			
+			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
+
+			if( is_wp_error( $term_info ) ) {
+				wp_send_json_error( $term_info->get_error_message() );
+			}
+
+			$term_id = $term_info['term_id'];
 		}
 		else {
+			$post_id = self::get_post_id( $term_id );
+		}
+
+		if( $term_id && $allow_rename ) {
+			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) ); 
+
 			$updated = wp_update_post( array(
 				'ID' => $post_id,
 				'post_title' => $gallery_name,
