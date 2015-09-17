@@ -158,12 +158,14 @@
 		},
 
 		updateDisabled: function(model, val) {
+			this.render();
+
 			if(val) {
-				this.$input.attr('disabled', 'disabled');
+				this.$input.prop('disabled', true);
 				this.$input.attr('placeholder', wpRememberTheGalleries['new-gallery']);
 			}
 			else {
-				this.$input.removeAttr('disabled');
+				this.$input.prop('disabled', false);
 				this.$input.attr('placeholder', wpRememberTheGalleries['select-gallery']);
 			}
 		},
