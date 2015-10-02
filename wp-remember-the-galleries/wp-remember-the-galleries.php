@@ -40,6 +40,11 @@ class WP_Remember_The_Galleries {
 	const entity = 'wp_rtg';
 
 	/**
+	 * The gallery attachments
+	 */
+	static $attachments = array();
+
+	/**
 	 * Register actions / filters, object types.
 	 *
 	 * Registers a taxonomy and a custom post type each with the same
@@ -56,14 +61,16 @@ class WP_Remember_The_Galleries {
 		add_action( 'wp_ajax_rtg_query_attachments', array( $c, 'query_attachments' ) );
 		add_action( 'init', array( $c, 'action_init_post_type' ) );
 
-		add_action( 'admin_menu', array( $c, 'admin_menu' ) );
-
 		// Accept 'slug' in [gallery] shortcode and emit a saved gallery
 		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 3 );
 
 		add_filter( 'manage_' . self::entity . '_posts_custom_column', array( $c, 'render_custom_columns' ), 15, 2 );
 		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
-		add_filter( 'post_row_actions', array( $c, 'post_row_actions' ), 10, 2 );
+		add_filter( 'bulk_actions-edit-wp_rtg', array( $c, 'bulk_actions' ) );
+
+		if ( is_admin() ) {
+			add_filter( 'clean_url', array( $c, 'clean_url' ), 10, 3 );
+		}
 	}
 
 	static function action_init_post_type() {
@@ -86,7 +93,7 @@ class WP_Remember_The_Galleries {
 			'show_ui' => true,
 			'public' => true,
 			'map_meta_cap' => true,
-			'menu_position' => 21,
+			'show_in_menu' => 'upload.php',
 			'supports' => array(
 				'title',
 				'editor',
@@ -123,38 +130,14 @@ class WP_Remember_The_Galleries {
 		wp_send_json_success( $result );
 	}
 
-	static function post_row_actions( $actions, $post ) {
-		if( $post->post_type == self::entity ) {
-			$term = get_term_by( 'slug', self::entity . '-' . $post->ID, self::entity );
-
-			if( $term ) {
-				$objects = self::get_attachments( $term->term_id );
-
-				$actions['edit'] = '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">Edit</a>"';
-			}
-		}
-
-		return $actions;
-	}
-
-	/**
-	 */
-	static function admin_menu() {
-		global $submenu;
-
-		$menu = remove_menu_page( 'edit.php?post_type=' . self::entity );
-
-		$submenu['upload.php'][] = array_slice( $menu, 0, 3 );
-	}
-
 	/**
 	 * Insert "image" column
 	 */
 	static function manage_columns( $columns ) {
-		unset( $columns['posts'] );
+		unset( $columns['posts'], $columns['title'] );
 		return array(
 			'cb' => $columns['cb'],
-			'title' => $columns['title'],
+			'gallerytitle' => __( "Title" ),
 			'images' => __( "Images" ),
 			'date' => $columns['date']
 		);
@@ -164,23 +147,45 @@ class WP_Remember_The_Galleries {
 	 * Render "Image" column
 	 */
 	static function render_custom_columns( $column, $post_id ) {
-		if( $column === 'images' ) {
+		switch ( $column ) {
+		case 'gallerytitle' :
+		case 'images' :
 			$objects = get_post_meta( $post_id, 'order', true );
 			$term = get_term_by( 'slug', self::entity . '-' . $post_id, self::entity );
+			$label = $column == 'gallerytitle' ? $term->name : count( $objects );
+			$classes = array('open-gallery-edit');
+			$before = $after = '';
+
+			if( $column == 'gallerytitle' ) {
+				$classes[] = 'row-title';
+				$before = '<strong>';
+				$after = '</strong>';
+			}
 
 			if( $objects ) {
-				echo '<a class="open-gallery-edit" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . count( $objects ) . "<br/>";
+				echo $before . '<a class="' . join( ' ', $classes ) . '" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . $label .  $after;
 
-				foreach( array_slice( $objects, 0, 10 ) as $attachment_id ) {
-					echo '<img width="40" src="' . esc_url( wp_get_attachment_thumb_url( $attachment_id ) ) . '" />&nbsp;';
-				}
+				if( $column == 'images' ) {
+					echo '<br />';
 
-				if( count( $objects ) > 10 ) {
-					echo '&nbsp;&hellip;';
+					foreach( array_slice( $objects, 0, 10 ) as $attachment_id ) {
+						echo '<img width="40" src="' . esc_url( wp_get_attachment_thumb_url( $attachment_id ) ) . '" />&nbsp;';
+					}
+
+					if( count( $objects ) > 10 ) {
+						echo '&nbsp;&hellip;';
+					}
 				}
 
 				echo '</a>';
+
+				if( $column == 'gallerytitle' ) {
+					echo '<div class="row-actions">';
+					echo '<span class="trash"><a class="submitdelete" href="' . get_delete_post_link( $post_id ) . '">' . __( 'Trash' ) . '</a></span>';
+					echo '</div>';
+				}
 			}
+			break;
 		}
 	}
 
@@ -308,49 +313,69 @@ class WP_Remember_The_Galleries {
 			wp_send_json_error( 'empty-name' );
 		}
 
-		$gallery_name = sanitize_text_field( trim( $_POST['name'] ) );
+		$term_id = null; 
+		if ( isset( $_POST['term_id'] ) ) {
+			$term_id = (int) $_POST['term_id'];
+		}
 
+		$gallery_name = sanitize_text_field( trim( $_POST['name'] ) );
 		if( empty( $gallery_name ) ) {
 			wp_send_json_error( 'empty-name' );
 		}
 
-		// Get or insert the appropriate term for this gallery
+		// Does a gallery with this name already exist?
 		$term_info = term_exists( $gallery_name, self::entity );
-
-		if( !isset( $term_info['term_id'] ) ) {
-			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '--' ) );
-
-			if( is_wp_error( $term_info ) ) {
-				wp_send_json_error( $term_info );
+		$allow_rename = true;
+		if ( isset( $term_info['term_id'] ) && $term_info['term_id'] != $term_id ) {
+			// Ask user to confirm that they want to overwrite the existing gallery
+			if ( !isset( $_POST['yes'] ) ) {
+				wp_send_json_error( 'need-confirm' );
+			}
+			// User has confirmed they want to overwrite the existing gallery, so let's use that term id
+			else {
+				$allow_rename = false;
+				$term_id = $term_info['term_id'];
 			}
 		}
 
-		$term = get_term( $term_info['term_id'], self::entity );
-
-		// Get the ID out of the term slug:
-		if( preg_match( '/^' . self::entity . '-(\d+)$/', $term->slug, $matches ) ) {
-			$post = get_post( (int) $matches[1] );
-
-			// Ensure this is the right kind of post. If not, just create a new one.
-			if( $post && $post->post_type == self::entity ) {
-				$post_id = $post->ID;
-			}
-		}
-
-		if( !isset( $post_id ) ) {
+		if( !$term_id ) {
 			$post_id = wp_insert_post( array(
 				'post_title' => $gallery_name,
 				'post_type' => self::entity,
 				'post_status' => 'publish'
 			) );
 
-			wp_update_term( $term->term_id, $term->taxonomy, array( 'slug' => self::entity . '-' . $post_id ) );
-			wp_set_object_terms( $post_id, $term->term_id, $term->taxonomy );
+			if( is_wp_error( $post_id ) ) {
+				wp_send_json_error( $post_id );
+			}
+			
+			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
+
+			if( is_wp_error( $term_info ) ) {
+				wp_send_json_error( $term_info->get_error_message() );
+			}
+
+			$term_id = $term_info['term_id'];
+		}
+		else {
+			$post_id = self::get_post_id( $term_id );
 		}
 
-		if( is_wp_error( $post_id ) ) {
-			wp_send_json_error( $post_id );
+		if( $term_id && $allow_rename ) {
+			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) ); 
+
+			$updated = wp_update_post( array(
+				'ID' => $post_id,
+				'post_title' => $gallery_name,
+				'post_name' => null
+			) );
+
+			if ( is_wp_error( $updated ) ) {
+				wp_send_json_error( $post_id );
+			}
 		}
+
+		wp_set_object_terms( $post_id, $term_id, self::entity );
 
 		$settings = array(
 			'columns' => null,
@@ -367,14 +392,8 @@ class WP_Remember_The_Galleries {
 			}
 		}
 
-		$objects = self::get_attachments( $term_info['term_id'] );
-
-		if( !empty( $objects ) && !isset( $_POST['yes'] ) ) {
-			wp_send_json_error( 'need-confirm' );
-		}
-
 		foreach( $ids as $id ) {
-			wp_set_object_terms( (int) $id, (int) $term_info['term_id'], self::entity, true );
+			wp_set_object_terms( (int) $id, $term_id, self::entity, true );
 		}
 
 		update_post_meta( $post_id, 'order', $ids );
@@ -384,25 +403,44 @@ class WP_Remember_The_Galleries {
 			update_post_meta( $post_id, 'settings', $captions );
 		}
 
-		_update_generic_term_count( $term_info['term_id'], $term->taxonomy );
+		_update_generic_term_count( $term_id, self::entity );
 		wp_send_json_success( 'gallery-saved' );
 	}
 
 	/**
 	 * Get the attachments associated with a particular gallery, by term ID
 	 */
-	static function get_attachments( $term_id ) {
-		$term = get_term( $term_id, self::entity );
-		$object_ids = get_objects_in_term( $term->term_id, self::entity );
+	static function get_attachments( $term_id, $what = 'attachment' ) {
+		global $wpdb;
 
-		// $post_id is encoded into term slug
-		$post_id = substr( $term->slug, strlen( self::entity ) + 1 );
+		if( !isset(self::$attachments[ $term_id ] ) ) {
+			// NOTE: we don't use get_objects_in_term() here because we
+			// need to be able to differentiate between attachments and
+			// the actual gallery post. Using a custom query we can get
+			// the info we need all in one swoop.
+			$results = $wpdb->get_results( $wpdb->prepare( "
+				SELECT tr.object_id, p.post_type 
+				FROM $wpdb->term_relationships AS tr
+				INNER JOIN $wpdb->term_taxonomy AS tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+				INNER JOIN $wpdb->posts AS p ON p.ID = tr.object_id
+				WHERE 1=1
+					AND tt.taxonomy = %s 
+					AND tt.term_id = %d
+			", self::entity, $term_id ) );
 
-		$order = get_post_meta( $post_id, 'order', true );
+			self::$attachments[ $term_id ] = wp_list_pluck( $results, 'post_type', 'object_id' );
+		}
 
-		$ids = array_intersect( $order, array_diff( $object_ids, array( $post_id ) ) );
+		$post_id = array_search( self::entity, self::$attachments[ $term_id ] );
+		if( $what == 'attachment' ) {
+			$order = get_post_meta( $post_id, 'order', true );
+			$attach_ids = array_keys( self::$attachments[ $term_id ], 'attachment' );
+			$ids = array_intersect( $order, array_diff( $attach_ids, array( $post_id ) ) );
 
-		return $ids;
+			return $ids;
+		}
+
+		return $post_id;
 	}
 
 	/**
@@ -453,19 +491,32 @@ class WP_Remember_The_Galleries {
 
 	// Return the post ID for a gallery term, if any
 	static function get_post_id( $term ) {
-		$post_name = self::entity . '-' . $term->term_id;
-
-		// Manage the gallery meta in a post with a predictable slug
-		$post_query = new WP_Query( array(
-			'post_type' => self::entity,
-			'name' => $post_name,
-			'post_status' => 'any',
-			'fields' => 'ids'
-		) );
-
-		if( $post_query->have_posts() ) {
-			return $post_query->next_post();
+		if( is_object( $term ) && isset( $term->term_id ) ) {
+			$term_id = $term->term_id;
 		}
+		elseif( intval( $term ) == $term ) {
+			$term_id = $term;
+		}
+		else {
+			throw new InvalidArgumentException( '$term is expected to be a term object or term ID' );
+		}
+		
+		return self::get_attachments( $term_id, self::entity );
+	}
+
+	// Remove "edit from bulk actions dropdown
+	static function bulk_actions( $actions ) {
+		unset( $actions['edit'] );
+		return $actions;
+	}
+
+	// change the "add new" url
+	static function clean_url( $clean_url, $unclean_url, $context ) {
+		if ( strpos( $clean_url, 'post-new.php?post_type=' . self::entity ) !== false ) {
+			return 'javascript:void(0);';
+		}
+
+		return $clean_url;
 	}
 }
 WP_Remember_The_Galleries::_setup();

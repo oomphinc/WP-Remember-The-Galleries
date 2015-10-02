@@ -158,12 +158,14 @@
 		},
 
 		updateDisabled: function(model, val) {
+			this.$input = this.$input || this.$el.find('input[type="text"]');
+
 			if(val) {
-				this.$input.attr('disabled', 'disabled');
+				this.$input.prop('disabled', true);
 				this.$input.attr('placeholder', wpRememberTheGalleries['new-gallery']);
 			}
 			else {
-				this.$input.removeAttr('disabled');
+				this.$input.prop('disabled', false);
 				this.$input.attr('placeholder', wpRememberTheGalleries['select-gallery']);
 			}
 		},
@@ -284,6 +286,7 @@
 						return { id: item.id, caption: item.caption };
 					}),
 					name: this.galleryDetails.get('name'),
+					term_id: this.galleryDetails.get('id'),
 					settings: selection.gallery.attributes
 				};
 
@@ -302,7 +305,7 @@
 							}
 						}
 						else {
-							alert( "Failed!" );
+							alert( data || 'Failed!' );
 						}
 					});
 				}
@@ -327,6 +330,8 @@
 					text: "Save Gallery",
 					controller: this,
 				});
+
+				this.toolbar.get().unset('insert');
 
 				this.toolbar.get().set({
 					'save-gallery': this.saveGalleryButton
@@ -466,16 +471,20 @@
 
 		wp.media.frame.open();
 		wp.media.frame.setIds(ids);
+		wp.media.frame.setState('gallery-edit');
 	});
 
 	// Pop up media manager with edit gallery screen selected, for creating
 	// new galleries from the gallery list screen. We want to discourage
 	// usage of the "edit post" screen for galleries, at least for now.
-	$('body.post-type-wp_rtg').on('click', '.add-new-h2', function(ev) {
+	$('body.post-type-wp_rtg').on('click', '.page-title-action', function(ev) {
 		wp.media.frame = new GalleryFrame({
 			selection: new media.model.Selection([], { multiple: true }),
 			library: media.query({ type: 'image' }),
 		});
+
+		var details = wp.media.frame.galleryDetails;
+		details.clear();
 
 		wp.media.frame.open();
 		wp.media.frame.setState('gallery-library');
