@@ -232,7 +232,7 @@ class WP_Remember_The_Galleries {
 	 * @action init
 	 */
 	static function enqueue_scripts() {
-		global $current_screen, $pagenow;
+		global $current_screen;
 
 		wp_register_script( 'wp-rtg', self::url( 'wp-remember-the-galleries.js' ), array( 'jquery-ui-autocomplete' ), 1, true );
 
@@ -248,7 +248,7 @@ class WP_Remember_The_Galleries {
 			)
 		);
 
-		if( $current_screen->id === 'upload' || $pagenow === 'post.php' ||
+		if( $current_screen->id === 'upload' || $current_screen->id === get_post_type() ||
 				( $current_screen->base === 'edit' && $current_screen->post_type == self::entity ) ) {
 			global $post;
 
