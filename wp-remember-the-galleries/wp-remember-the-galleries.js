@@ -278,7 +278,7 @@
 				}
 			},
 
-			saveGallery: function(saveNew) {
+			saveGallery: function() {
 				var selection = this.state().get('library');
 
 				var saveData = {
@@ -295,17 +295,17 @@
 						media.frame && media.frame.close();
 						location.reload();
 					}).fail(function(data) {
-						if(data === 'empty-name') {
+						if(data.message === 'empty-name') {
 							this.router.get().$el.find('input').focus();
 						}
-						else if(data === 'need-confirm') {
-							if(confirm(wpRememberTheGalleries['are-you-sure'])) {
+						else if(data.message === 'need-confirm') {
+							if(confirm(wpRememberTheGalleries['are-you-sure'].replace('%s', data.data.post_name))) {
 								saveData.yes = true;
 								save();
 							}
 						}
 						else {
-							alert( data || 'Failed!' );
+							alert( wpRememberTheGalleries.errors[data.message] || 'Failed!' );
 						}
 					});
 				}
@@ -320,35 +320,27 @@
 				else {
 					this.toolbar.set(new media.view.Toolbar({ controller: this }));
 				}
-
-				this.saveNewGalleryButton = new media.view.Button({
-					click: function() {
-						this.controller.saveGallery(true);
-					},
-					text: "Save New...",
-					style: 'secondary',
-				});
-
-				this.saveGalleryButton = new media.view.Button({
-					click: function() {
-						this.controller.saveGallery();
-					},
-					disabled: true,
-					style: 'primary',
-					text: "Save Gallery",
-					controller: this,
-				});
-
-				this.toolbar.get().unset('insert');
 			},
 
 			updateButtonState: function() {
 				var toolbar = this.toolbar.get();
 
 				if(toolbar) {
+					this.saveGalleryButton = new media.view.Button({
+						click: function() {
+							this.controller.saveGallery();
+						},
+						disabled: true,
+						style: 'primary',
+						text: "Save Gallery",
+						controller: this,
+					});
+
+
+					toolbar.unset('insert');
+
 					if(wp.media.frame.galleryDetails.get('id')) {
 						toolbar.set({
-							'new-gallery': this.saveNewGalleryButton,
 							'save-gallery': this.saveGalleryButton
 						});
 					}
