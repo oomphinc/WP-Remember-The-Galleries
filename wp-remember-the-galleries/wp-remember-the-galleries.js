@@ -278,7 +278,7 @@
 				}
 			},
 
-			saveGallery: function() {
+			saveGallery: function(saveNew) {
 				var selection = this.state().get('library');
 
 				var saveData = {
@@ -321,6 +321,14 @@
 					this.toolbar.set(new media.view.Toolbar({ controller: this }));
 				}
 
+				this.saveNewGalleryButton = new media.view.Button({
+					click: function() {
+						this.controller.saveGallery(true);
+					},
+					text: "Save New...",
+					style: 'secondary',
+				});
+
 				this.saveGalleryButton = new media.view.Button({
 					click: function() {
 						this.controller.saveGallery();
@@ -332,13 +340,25 @@
 				});
 
 				this.toolbar.get().unset('insert');
-
-				this.toolbar.get().set({
-					'save-gallery': this.saveGalleryButton
-				});
 			},
 
 			updateButtonState: function() {
+				var toolbar = this.toolbar.get();
+
+				if(toolbar) {
+					if(wp.media.frame.galleryDetails.get('id')) {
+						toolbar.set({
+							'new-gallery': this.saveNewGalleryButton,
+							'save-gallery': this.saveGalleryButton
+						});
+					}
+					else {
+						toolbar.set({
+							'save-gallery': this.saveGalleryButton
+						});
+					}
+				}
+
 				this.saveGalleryButton && this.saveGalleryButton.model.set('disabled', !this.galleryDetails.get('name'));
 			},
 
