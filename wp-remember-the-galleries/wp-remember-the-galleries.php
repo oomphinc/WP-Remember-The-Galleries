@@ -220,7 +220,7 @@ class WP_Remember_The_Galleries {
 			)
 		);
 
-		if( $current_screen->id === 'upload' || $current_screen->id === 'post' ||
+		if( $current_screen->id === 'upload' || $current_screen->id === get_post_type() ||
 				( $current_screen->base === 'edit' && $current_screen->post_type == self::entity ) ) {
 			global $post;
 
@@ -285,7 +285,7 @@ class WP_Remember_The_Galleries {
 			wp_send_json_error( 'empty-name' );
 		}
 
-		$term_id = null; 
+		$term_id = null;
 		if ( isset( $_POST['term_id'] ) ) {
 			$term_id = (int) $_POST['term_id'];
 		}
@@ -320,7 +320,7 @@ class WP_Remember_The_Galleries {
 			if( is_wp_error( $post_id ) ) {
 				wp_send_json_error( $post_id );
 			}
-			
+
 			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
 
 			if( is_wp_error( $term_info ) ) {
@@ -334,7 +334,7 @@ class WP_Remember_The_Galleries {
 		}
 
 		if( $term_id && $allow_rename ) {
-			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) ); 
+			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) );
 
 			$updated = wp_update_post( array(
 				'ID' => $post_id,
@@ -391,12 +391,12 @@ class WP_Remember_The_Galleries {
 			// the actual gallery post. Using a custom query we can get
 			// the info we need all in one swoop.
 			$results = $wpdb->get_results( $wpdb->prepare( "
-				SELECT tr.object_id, p.post_type 
+				SELECT tr.object_id, p.post_type
 				FROM $wpdb->term_relationships AS tr
 				INNER JOIN $wpdb->term_taxonomy AS tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
 				INNER JOIN $wpdb->posts AS p ON p.ID = tr.object_id
 				WHERE 1=1
-					AND tt.taxonomy = %s 
+					AND tt.taxonomy = %s
 					AND tt.term_id = %d
 			", self::entity, $term_id ) );
 
@@ -472,7 +472,7 @@ class WP_Remember_The_Galleries {
 		else {
 			throw new InvalidArgumentException( '$term is expected to be a term object or term ID' );
 		}
-		
+
 		return self::get_attachments( $term_id, self::entity );
 	}
 
