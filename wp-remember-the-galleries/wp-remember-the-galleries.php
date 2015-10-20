@@ -220,7 +220,7 @@ class WP_Remember_The_Galleries {
 			)
 		);
 
-		if( $current_screen->id === 'upload' || $current_screen->id === 'post' ||
+		if( $current_screen->id === 'upload' || $current_screen->id === get_post_type() ||
 				( $current_screen->base === 'edit' && $current_screen->post_type == self::entity ) ) {
 			global $post;
 
