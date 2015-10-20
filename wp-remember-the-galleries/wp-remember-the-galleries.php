@@ -285,7 +285,7 @@ class WP_Remember_The_Galleries {
 			wp_send_json_error( 'empty-name' );
 		}
 
-		$term_id = null; 
+		$term_id = null;
 		if ( isset( $_POST['term_id'] ) ) {
 			$term_id = (int) $_POST['term_id'];
 		}
@@ -320,7 +320,7 @@ class WP_Remember_The_Galleries {
 			if( is_wp_error( $post_id ) ) {
 				wp_send_json_error( $post_id );
 			}
-			
+
 			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
 
 			if( is_wp_error( $term_info ) ) {
@@ -334,7 +334,7 @@ class WP_Remember_The_Galleries {
 		}
 
 		if( $term_id && $allow_rename ) {
-			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) ); 
+			wp_update_term( $term_id, self::entity, array( 'name' => $gallery_name ) );
 
 			$updated = wp_update_post( array(
 				'ID' => $post_id,
@@ -346,8 +346,6 @@ class WP_Remember_The_Galleries {
 				wp_send_json_error( $post_id );
 			}
 		}
-
-		wp_set_object_terms( $post_id, $term_id, self::entity );
 
 		$settings = array(
 			'columns' => null,
@@ -382,7 +380,7 @@ class WP_Remember_The_Galleries {
 	/**
 	 * Get the attachments associated with a particular gallery, by term ID
 	 */
-	static function get_attachments( $term_id, $what = 'attachment' ) {
+	static function get_attachments( $term_id ) {
 		global $wpdb;
 
 		if( !isset(self::$attachments[ $term_id ] ) ) {
@@ -391,12 +389,12 @@ class WP_Remember_The_Galleries {
 			// the actual gallery post. Using a custom query we can get
 			// the info we need all in one swoop.
 			$results = $wpdb->get_results( $wpdb->prepare( "
-				SELECT tr.object_id, p.post_type 
+				SELECT tr.object_id, p.post_type
 				FROM $wpdb->term_relationships AS tr
 				INNER JOIN $wpdb->term_taxonomy AS tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
 				INNER JOIN $wpdb->posts AS p ON p.ID = tr.object_id
 				WHERE 1=1
-					AND tt.taxonomy = %s 
+					AND tt.taxonomy = %s
 					AND tt.term_id = %d
 			", self::entity, $term_id ) );
 
@@ -404,15 +402,12 @@ class WP_Remember_The_Galleries {
 		}
 
 		$post_id = array_search( self::entity, self::$attachments[ $term_id ] );
-		if( $what == 'attachment' ) {
-			$order = get_post_meta( $post_id, 'order', true );
-			$attach_ids = array_keys( self::$attachments[ $term_id ], 'attachment' );
-			$ids = array_intersect( $order, array_diff( $attach_ids, array( $post_id ) ) );
 
-			return $ids;
-		}
+		$order = get_post_meta( $post_id, 'order', true );
+		$attach_ids = array_keys( self::$attachments[ $term_id ], 'attachment' );
+		$ids = array_intersect( $order, array_diff( $attach_ids, array( $post_id ) ) );
 
-		return $post_id;
+		return $ids;
 	}
 
 	/**
@@ -461,7 +456,12 @@ class WP_Remember_The_Galleries {
 		return $out;
 	}
 
-	// Return the post ID for a gallery term, if any
+	/**
+	 * Return the post ID for a gallery term, if any
+	 *
+	 * @param term_id|WP_Term The term ID or object
+	 * @return int|null
+	 */
 	static function get_post_id( $term ) {
 		if( is_object( $term ) && isset( $term->term_id ) ) {
 			$term_id = $term->term_id;
@@ -472,8 +472,12 @@ class WP_Remember_The_Galleries {
 		else {
 			throw new InvalidArgumentException( '$term is expected to be a term object or term ID' );
 		}
-		
-		return self::get_attachments( $term_id, self::entity );
+
+		$term = get_term( $term_id, self::entity );
+
+		if ( $term && preg_match( '/-(\d+)$/', $term->slug, $matches ) ) {
+			return (int) $matches[1];
+		}
 	}
 
 	// Remove "edit from bulk actions dropdown
