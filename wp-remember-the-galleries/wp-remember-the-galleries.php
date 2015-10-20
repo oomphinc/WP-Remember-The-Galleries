@@ -209,14 +209,15 @@ class WP_Remember_The_Galleries {
 		wp_register_script( 'wp-rtg', plugins_url( 'wp-remember-the-galleries.js', __FILE__ ), array( 'jquery-ui-autocomplete' ), 1, true );
 
 		$js_object = array(
-			'select-gallery' => __( "Select gallery or name a new gallery..." ),
-			'load-gallery' => __( "Load" ),
-			'new-gallery' => __( "New gallery..." ),
-			'are-you-sure' => __( "Are you sure you want to replace the images in this gallery?" ),
+			'select-gallery' => __( 'Select gallery or name a new gallery...', 'boston-chefs' ),
+			'load-gallery' => __( 'Load', 'boston-chefs' ),
+			'new-gallery' => __( 'New gallery...', 'boston-chefs' ),
+			'are-you-sure' => __( 'Are you sure you want to replace the images in this gallery?', 'boston-chefs' ),
 			'errors' => array(
-				'empty-name' => __( "Empty gallery name" ),
-				'invalid-input' => __( "Missing IDs" ),
-				'need-confirm' => __( "Are you sure you want to replace this gallery?" )
+				'empty-name' => __( 'Empty gallery name', 'boston-chefs' ),
+				'taken-name' => __( 'This name is already taken by another gallery, please choose another', 'boston-chefs' ),
+				'invalid-input' => __( 'Missing IDs', 'boston-chefs' ),
+				'need-confirm' => __( 'Are you sure you want to replace this gallery?', 'boston-chefs' )
 			)
 		);
 
