@@ -339,16 +339,9 @@
 
 					toolbar.unset('insert');
 
-					if(wp.media.frame.galleryDetails.get('id')) {
-						toolbar.set({
-							'save-gallery': this.saveGalleryButton
-						});
-					}
-					else {
-						toolbar.set({
-							'save-gallery': this.saveGalleryButton
-						});
-					}
+					toolbar.set({
+						'save-gallery': this.saveGalleryButton
+					});
 				}
 
 				this.saveGalleryButton && this.saveGalleryButton.model.set('disabled', !this.galleryDetails.get('name'));
