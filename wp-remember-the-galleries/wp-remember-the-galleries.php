@@ -113,13 +113,13 @@ class WP_Remember_The_Galleries {
 
 	static function query_attachments() {
 		if( !isset( $_REQUEST['ids'] ) || !is_array( $_REQUEST['ids'] ) ) {
-			self::json_error();
+			self::json_error( 'invalid-input' );
 		}
 
 		$ids = array_filter( array_unique( array_map( 'absint', $_REQUEST['ids'] ) ) );
 
 		if( !current_user_can( 'upload_files' ) ) {
-			self::json_error();
+			self::json_error( 'permission-denied' );
 		}
 
 		$result = array();
@@ -215,6 +215,7 @@ class WP_Remember_The_Galleries {
 			'new-gallery' => __( 'New gallery...', 'wprtg' ),
 			'are-you-sure' => __( 'Are you sure you want to replace the images in the gallery "%s"?', 'wprtg' ),
 			'errors' => array(
+				'permission-denied' => __( 'You do not have access to the requested action', 'wprtg' ),
 				'empty-name' => __( 'Empty gallery name', 'wprtg' ),
 				'invalid-input' => __( 'Missing IDs', 'wprtg' ),
 				'need-confirm' => __( 'Are you sure you want to overwrite the gallery "%s"?', 'wprtg' )
@@ -331,7 +332,7 @@ class WP_Remember_The_Galleries {
 		if ( isset( $term_info['term_id'] ) && $term_info['term_id'] != $term_id ) {
 			// Ask user to confirm that they want to overwrite an existing gallery
 			if ( !$yes ) {
-				$this->json_error( 'need-confirm', array( 'post_name' => $gallery_name ) );
+				self::json_error( 'need-confirm', array( 'post_name' => $gallery_name ) );
 			}
 			// User has confirmed they want to overwrite the existing gallery, so let's use that term id
 			else {
@@ -348,13 +349,13 @@ class WP_Remember_The_Galleries {
 			) );
 
 			if( is_wp_error( $post_id ) ) {
-				$this->json_error( $post_id );
+				self::json_error( $post_id );
 			}
 
 			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
 
 			if( is_wp_error( $term_info ) ) {
-				$this->json_error( $term_info->get_error_message() );
+				self::json_error( $term_info->get_error_message() );
 			}
 
 			$term_id = $term_info['term_id'];
@@ -373,7 +374,7 @@ class WP_Remember_The_Galleries {
 			) );
 
 			if ( is_wp_error( $updated ) ) {
-				$this->json_error( $post_id );
+				self::json_error( $post_id );
 			}
 		}
 
