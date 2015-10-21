@@ -6,8 +6,9 @@ Author: Ben Doherty @ Oomph, Inc.
 Version: 0.0.1
 Author URI: http://www.oomphinc.com/thinking/author/bdoherty/
 License: GPLv2 or later
+Text Domain: wprtg
 
-		Copyright © 2015 Oomph, Inc. <http://oomphinc.com>
+    Copyright © 2015 Oomph, Inc. <http://oomphinc.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -209,14 +210,14 @@ class WP_Remember_The_Galleries {
 		wp_register_script( 'wp-rtg', plugins_url( 'wp-remember-the-galleries.js', __FILE__ ), array( 'jquery-ui-autocomplete' ), 1, true );
 
 		$js_object = array(
-			'select-gallery' => __( 'Select gallery or name a new gallery...', 'boston-chefs' ),
-			'load-gallery' => __( 'Load', 'boston-chefs' ),
-			'new-gallery' => __( 'New gallery...', 'boston-chefs' ),
-			'are-you-sure' => __( 'Are you sure you want to replace the images in the gallery "%s"?', 'boston-chefs' ),
+			'select-gallery' => __( 'Select gallery or name a new gallery...', 'wprtg' ),
+			'load-gallery' => __( 'Load', 'wprtg' ),
+			'new-gallery' => __( 'New gallery...', 'wprtg' ),
+			'are-you-sure' => __( 'Are you sure you want to replace the images in the gallery "%s"?', 'wprtg' ),
 			'errors' => array(
-				'empty-name' => __( 'Empty gallery name', 'boston-chefs' ),
-				'invalid-input' => __( 'Missing IDs', 'boston-chefs' ),
-				'need-confirm' => __( 'Are you sure you want to overwrite the gallery "%s"?', 'boston-chefs' )
+				'empty-name' => __( 'Empty gallery name', 'wprtg' ),
+				'invalid-input' => __( 'Missing IDs', 'wprtg' ),
+				'need-confirm' => __( 'Are you sure you want to overwrite the gallery "%s"?', 'wprtg' )
 			)
 		);
 
