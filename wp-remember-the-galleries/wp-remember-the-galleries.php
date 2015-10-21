@@ -287,6 +287,10 @@ class WP_Remember_The_Galleries {
 			'yes' => FILTER_VALIDATE_BOOLEAN
 		) );
 
+		if ( !$input ) {
+			self::json_error( 'invalid-input' );
+		}
+
 		extract( $input );
 
 		if( !isset( $images ) ) {
