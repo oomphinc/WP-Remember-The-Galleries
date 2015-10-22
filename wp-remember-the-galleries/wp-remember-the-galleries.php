@@ -389,6 +389,10 @@ class WP_Remember_The_Galleries {
 		update_post_meta( $post_id, 'order', $ids );
 		update_post_meta( $post_id, 'captions', $captions );
 
+		if ( !is_array( $settings ) ) {
+			$settings = array();
+		}
+
 		$settings = filter_var_array( $settings, array(
 			'columns' => FILTER_VALIDATE_INT,
 			'link' => FILTER_SANITIZE_STRING,
