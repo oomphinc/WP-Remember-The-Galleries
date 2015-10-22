@@ -6,8 +6,9 @@ Author: Ben Doherty @ Oomph, Inc.
 Version: 0.0.1
 Author URI: http://www.oomphinc.com/thinking/author/bdoherty/
 License: GPLv2 or later
+Text Domain: wprtg
 
-		Copyright © 2015 Oomph, Inc. <http://oomphinc.com>
+    Copyright © 2015 Oomph, Inc. <http://oomphinc.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -112,13 +113,13 @@ class WP_Remember_The_Galleries {
 
 	static function query_attachments() {
 		if( !isset( $_REQUEST['ids'] ) || !is_array( $_REQUEST['ids'] ) ) {
-			wp_send_json_error();
+			self::json_error( 'invalid-input' );
 		}
 
 		$ids = array_filter( array_unique( array_map( 'absint', $_REQUEST['ids'] ) ) );
 
 		if( !current_user_can( 'upload_files' ) ) {
-			wp_send_json_error();
+			self::json_error( 'permission-denied' );
 		}
 
 		$result = array();
@@ -209,14 +210,15 @@ class WP_Remember_The_Galleries {
 		wp_register_script( 'wp-rtg', plugins_url( 'wp-remember-the-galleries.js', __FILE__ ), array( 'jquery-ui-autocomplete' ), 1, true );
 
 		$js_object = array(
-			'select-gallery' => __( "Select gallery or name a new gallery..." ),
-			'load-gallery' => __( "Load" ),
-			'new-gallery' => __( "New gallery..." ),
-			'are-you-sure' => __( "Are you sure you want to replace the images in this gallery?" ),
+			'select-gallery' => __( 'Select gallery or name a new gallery...', 'wprtg' ),
+			'load-gallery' => __( 'Load', 'wprtg' ),
+			'new-gallery' => __( 'New gallery...', 'wprtg' ),
+			'are-you-sure' => __( 'Are you sure you want to replace the images in the gallery "%s"?', 'wprtg' ),
 			'errors' => array(
-				'empty-name' => __( "Empty gallery name" ),
-				'invalid-input' => __( "Missing IDs" ),
-				'need-confirm' => __( "Are you sure you want to replace this gallery?" )
+				'permission-denied' => __( 'You do not have access to the requested action', 'wprtg' ),
+				'empty-name' => __( 'Empty gallery name', 'wprtg' ),
+				'invalid-input' => __( 'Missing IDs', 'wprtg' ),
+				'need-confirm' => __( 'Are you sure you want to overwrite the gallery "%s"?', 'wprtg' )
 			)
 		);
 
@@ -253,19 +255,56 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
+	 * Send an error message and any additional data
+	 */
+	static function json_error( $message, $data = array() ) {
+		wp_send_json_error( array(
+			'message' => $message,
+			'data' => $data
+		) );
+	}
+
+	/**
 	 * Process AJAX request to save a gallery. Key galleries by title, just
 	 * because it's easier that way and makes it editorially simpler to identify
 	 * different galleries.
 	 */
 	static function save_gallery() {
-		if( !isset( $_POST['images'] ) || !is_array( $_POST['images'] ) ) {
-			wp_send_json_error( 'invalid-input' );
+		$input = filter_input_array( INPUT_POST, array(
+			'images' => array(
+				'filter' => FILTER_VALIDATE_INT,
+				'flags' => FILTER_REQUIRE_ARRAY,
+				'options' => array( 'min_range' => 1 )
+			),
+			'name' => array(
+				'filter' => FILTER_SANITIZE_STRING,
+				'flags' => FILTER_REQUIRE_SCALAR
+			),
+			'term_id' => FILTER_VALIDATE_INT,
+			'settings' => array(
+				'flags' => FILTER_REQUIRE_ARRAY
+			),
+			'yes' => FILTER_VALIDATE_BOOLEAN
+		) );
+
+		if ( !$input ) {
+			self::json_error( 'invalid-input' );
+		}
+
+		extract( $input );
+
+		if( !isset( $images ) ) {
+			self::json_error( 'invalid-input' );
+		}
+
+		if( empty( $images ) ) {
+			self::json_error( 'no-images' );
 		}
 
 		$ids = array();
 		$captions = array();
 
-		foreach( $_POST['images'] as $image ) {
+		foreach( $images as $image ) {
 			if( is_array( $image ) && isset( $image['id'] ) && (int) $image['id'] > 0 ) {
 				$id = (int) $image['id'];
 
@@ -275,33 +314,29 @@ class WP_Remember_The_Galleries {
 					$captions[$id] = sanitize_text_field( $image['caption'] );
 				}
 			}
+			else {
+				self::json_error( 'invalid-input' );
+			}
+
 		}
 
 		if( empty( $ids ) ) {
-			wp_send_json_error( 'invalid-input' );
+			self::json_error( 'invalid-input' );
 		}
 
-		if( !isset( $_POST['name'] ) || empty( $_POST['name'] ) ) {
-			wp_send_json_error( 'empty-name' );
-		}
+		$gallery_name = sanitize_text_field( trim( $name ) );
 
-		$term_id = null;
-		if ( isset( $_POST['term_id'] ) ) {
-			$term_id = (int) $_POST['term_id'];
-		}
-
-		$gallery_name = sanitize_text_field( trim( $_POST['name'] ) );
 		if( empty( $gallery_name ) ) {
-			wp_send_json_error( 'empty-name' );
+			self::json_error( 'empty-name' );
 		}
 
 		// Does a gallery with this name already exist?
 		$term_info = term_exists( $gallery_name, self::entity );
 		$allow_rename = true;
 		if ( isset( $term_info['term_id'] ) && $term_info['term_id'] != $term_id ) {
-			// Ask user to confirm that they want to overwrite the existing gallery
-			if ( !isset( $_POST['yes'] ) ) {
-				wp_send_json_error( 'need-confirm' );
+			// Ask user to confirm that they want to overwrite an existing gallery
+			if ( !$yes ) {
+				self::json_error( 'need-confirm', array( 'post_name' => $gallery_name ) );
 			}
 			// User has confirmed they want to overwrite the existing gallery, so let's use that term id
 			else {
@@ -318,13 +353,13 @@ class WP_Remember_The_Galleries {
 			) );
 
 			if( is_wp_error( $post_id ) ) {
-				wp_send_json_error( $post_id );
+				self::json_error( $post_id );
 			}
 
 			$term_info = wp_insert_term( $gallery_name, self::entity, array( 'slug' => self::entity . '-' . $post_id ) );
 
 			if( is_wp_error( $term_info ) ) {
-				wp_send_json_error( $term_info->get_error_message() );
+				self::json_error( $term_info->get_error_message() );
 			}
 
 			$term_id = $term_info['term_id'];
@@ -343,24 +378,7 @@ class WP_Remember_The_Galleries {
 			) );
 
 			if ( is_wp_error( $updated ) ) {
-				wp_send_json_error( $post_id );
-			}
-		}
-
-		wp_set_object_terms( $post_id, $term_id, self::entity );
-
-		$settings = array(
-			'columns' => null,
-			'link' => null,
-			'size' => null,
-			'random' => null
-		);
-
-		if( isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ) {
-			foreach( $settings as $setting => $default ) {
-				if( isset( $_POST['settings'][$setting] ) ) {
-					$settings[$setting] = $_POST['settings'][$setting];
-				}
+				self::json_error( $post_id );
 			}
 		}
 
@@ -371,8 +389,19 @@ class WP_Remember_The_Galleries {
 		update_post_meta( $post_id, 'order', $ids );
 		update_post_meta( $post_id, 'captions', $captions );
 
+		if ( !is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		$settings = filter_var_array( $settings, array(
+			'columns' => FILTER_VALIDATE_INT,
+			'link' => FILTER_SANITIZE_STRING,
+			'size' => FILTER_VALIDATE_INT,
+			'random' => FILTER_VALIDATE_BOOLEAN
+		) );
+
 		if( !empty( $settings ) ) {
-			update_post_meta( $post_id, 'settings', $captions );
+			update_post_meta( $post_id, 'settings', $settings );
 		}
 
 		_update_generic_term_count( $term_id, self::entity );
@@ -382,7 +411,7 @@ class WP_Remember_The_Galleries {
 	/**
 	 * Get the attachments associated with a particular gallery, by term ID
 	 */
-	static function get_attachments( $term_id, $what = 'attachment' ) {
+	static function get_attachments( $term_id ) {
 		global $wpdb;
 
 		if( !isset(self::$attachments[ $term_id ] ) ) {
@@ -404,15 +433,12 @@ class WP_Remember_The_Galleries {
 		}
 
 		$post_id = array_search( self::entity, self::$attachments[ $term_id ] );
-		if( $what == 'attachment' ) {
-			$order = get_post_meta( $post_id, 'order', true );
-			$attach_ids = array_keys( self::$attachments[ $term_id ], 'attachment' );
-			$ids = array_intersect( $order, array_diff( $attach_ids, array( $post_id ) ) );
 
-			return $ids;
-		}
+		$order = get_post_meta( $post_id, 'order', true );
+		$attach_ids = array_keys( self::$attachments[ $term_id ], 'attachment' );
+		$ids = array_intersect( $order, array_diff( $attach_ids, array( $post_id ) ) );
 
-		return $post_id;
+		return $ids;
 	}
 
 	/**
@@ -461,7 +487,12 @@ class WP_Remember_The_Galleries {
 		return $out;
 	}
 
-	// Return the post ID for a gallery term, if any
+	/**
+	 * Return the post ID for a gallery term, if any
+	 *
+	 * @param term_id|WP_Term The term ID or object
+	 * @return int|null
+	 */
 	static function get_post_id( $term ) {
 		if( is_object( $term ) && isset( $term->term_id ) ) {
 			$term_id = $term->term_id;
@@ -473,7 +504,11 @@ class WP_Remember_The_Galleries {
 			throw new InvalidArgumentException( '$term is expected to be a term object or term ID' );
 		}
 
-		return self::get_attachments( $term_id, self::entity );
+		$term = get_term( $term_id, self::entity );
+
+		if ( $term && preg_match( '/-(\d+)$/', $term->slug, $matches ) ) {
+			return (int) $matches[1];
+		}
 	}
 
 	// Remove "edit from bulk actions dropdown
