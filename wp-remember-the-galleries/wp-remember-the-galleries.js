@@ -314,11 +314,12 @@
 			},
 
 			galleryEditToolbar: function(toolbar) {
-				if(wp.media.frame.id != 'library-gallery') {
+				if(wp.media.frame.state().id != 'gallery-edit') {
 					postEditToolbar.apply(this, arguments);
 				}
 				else {
 					this.toolbar.set(new media.view.Toolbar({ controller: this }));
+					this.updateButtonState();
 				}
 			},
 
@@ -336,7 +337,6 @@
 						controller: this,
 					});
 
-
 					toolbar.unset('insert');
 
 					toolbar.set({
@@ -346,12 +346,6 @@
 
 				this.saveGalleryButton && this.saveGalleryButton.model.set('disabled', !this.galleryDetails.get('name'));
 			},
-
-			activate: function() {
-				parent.prototype.activate && parent.prototype.activate.apply(this, arguments);
-
-				this.updateButtonState();
-			}
 		};
 	}
 
