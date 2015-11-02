@@ -287,13 +287,28 @@
 					}),
 					name: this.galleryDetails.get('name'),
 					term_id: this.galleryDetails.get('id'),
-					settings: selection.gallery.attributes
+					settings: selection.gallery.attributes,
+					context: this.galleryDetails.get('context'),
 				};
+
+				var $target = this.galleryDetails.get('target') && $(this.galleryDetails.get('target'));
 
 				var save = function() {
 					media.post('rtg_save_gallery', saveData).done(function(data) {
 						media.frame && media.frame.close();
-						location.reload();
+						switch (saveData.context) {
+							case 'bulk-edit':
+								if (data.columns) {
+									for(var column in data.columns) {
+										$target.parent().parent().find('.' + column).html(data.columns[column]);
+									}
+								}
+							break;
+
+							case 'new-gallery':
+								location.reload();
+							break;
+						}
 					}).fail(function(data) {
 						if(data.message === 'empty-name') {
 							this.router.get().$el.find('input').focus();
@@ -467,6 +482,8 @@
 
 		details.set('id', id);
 		details.set('name', name);
+		details.set('target', this);
+		details.set('context', 'bulk-edit');
 
 		wp.media.frame.open();
 		wp.media.frame.setIds(ids);
@@ -484,6 +501,7 @@
 
 		var details = wp.media.frame.galleryDetails;
 		details.clear();
+		details.set('context', 'new-gallery');
 
 		wp.media.frame.open();
 		wp.media.frame.setState('gallery-library');
