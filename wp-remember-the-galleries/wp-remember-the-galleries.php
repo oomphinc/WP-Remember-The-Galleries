@@ -47,9 +47,6 @@ class WP_Remember_The_Galleries {
 
 	/**
 	 * Register actions / filters, object types.
-	 *
-	 * Registers a taxonomy and a custom post type each with the same
-	 * type identifier given in self::entity.
 	 */
 	static function _setup() {
 		$c = get_called_class();
@@ -66,7 +63,7 @@ class WP_Remember_The_Galleries {
 		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 3 );
 
 		add_filter( 'manage_' . self::entity . '_posts_custom_column', array( $c, 'render_custom_columns' ), 15, 2 );
-		add_filter( 'manage_edit-' . self::entity . '_columns',  array( $c, 'manage_columns' ) );
+		add_filter( 'manage_edit-' . self::entity . '_columns', array( $c, 'manage_columns' ) );
 		add_filter( 'bulk_actions-edit-wp_rtg', array( $c, 'bulk_actions' ) );
 
 		if ( is_admin() ) {
@@ -74,6 +71,12 @@ class WP_Remember_The_Galleries {
 		}
 	}
 
+	/**
+	 * Registers a taxonomy and a custom post type each with the same
+	 * type identifier given in self::entity.
+	 *
+	 * @action init
+	 */
 	static function action_init_post_type() {
 		$labels = array(
 			'name'              => __( "Galleries" ),
@@ -111,6 +114,11 @@ class WP_Remember_The_Galleries {
 		) );
 	}
 
+	/**
+	 * Get attachment details for a set of IDs
+	 *
+	 * @action wp_ajax_rtg_query_attachments
+	 */
 	static function query_attachments() {
 		if( !isset( $_REQUEST['ids'] ) || !is_array( $_REQUEST['ids'] ) ) {
 			self::json_error( 'invalid-input' );
@@ -132,7 +140,9 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Insert "image" column
+	 * Insert "image" and custom "title" columns
+	 *
+	 * @filter manage_edit-[post_type]_columns
 	 */
 	static function manage_columns( $columns ) {
 		unset( $columns['posts'], $columns['title'] );
@@ -145,7 +155,9 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Render "Image" column
+	 * Render "Image" and custom "Title" columns
+	 *
+	 * @filter manage_[post_type]_posts_custom_column
 	 */
 	static function render_custom_columns( $column, $post_id ) {
 		switch ( $column ) {
@@ -202,7 +214,7 @@ class WP_Remember_The_Galleries {
 	/**
 	 * Register and enqueue gallery management scripts.
 	 *
-	 * @action init
+	 * @action admin_enqueue_scripts
 	 */
 	static function enqueue_scripts() {
 		global $current_screen;
@@ -256,6 +268,9 @@ class WP_Remember_The_Galleries {
 
 	/**
 	 * Send an error message and any additional data
+	 *
+	 * @param  string $message error message
+	 * @param  [array] $data additional data to pass in response
 	 */
 	static function json_error( $message, $data = array() ) {
 		wp_send_json_error( array(
@@ -268,6 +283,8 @@ class WP_Remember_The_Galleries {
 	 * Process AJAX request to save a gallery. Key galleries by title, just
 	 * because it's easier that way and makes it editorially simpler to identify
 	 * different galleries.
+	 *
+	 * @action wp_ajax_rtg_save_gallery
 	 */
 	static function save_gallery() {
 		$input = filter_input_array( INPUT_POST, array(
@@ -410,6 +427,9 @@ class WP_Remember_The_Galleries {
 
 	/**
 	 * Get the attachments associated with a particular gallery, by term ID
+	 *
+	 * @param  int $term_id term id for the gallery
+	 * @return  array associated attachment IDs
 	 */
 	static function get_attachments( $term_id ) {
 		global $wpdb;
@@ -447,6 +467,8 @@ class WP_Remember_The_Galleries {
 	 *
 	 * As a corrolary to this, galleries have unique names. This is a design
 	 * decision partially driven by the limitations in jQuery-ui-autocomplete.
+	 *
+	 * @action wp_ajax_rtg_gallery_search
 	 */
 	static function gallery_search() {
 		global $wpdb;
@@ -471,6 +493,11 @@ class WP_Remember_The_Galleries {
 		wp_send_json_success( $galleries );
 	}
 
+	/**
+	 * Convert a slug-based shortcode to the standard ID-based gallery shortcode
+	 *
+	 * @action shortcode_atts_gallery
+	 */
 	static function munge_shortcode( $out, $pairs, $atts ) {
 		if( isset( $atts['slug'] ) ) {
 			$term = get_term_by( 'slug', $atts['slug'], self::entity );
@@ -511,13 +538,21 @@ class WP_Remember_The_Galleries {
 		}
 	}
 
-	// Remove "edit from bulk actions dropdown
+	/**
+	 * Remove "edit" from bulk actions dropdown
+	 *
+	 * @action bulk_actions-edit-[post_type]
+	 */
 	static function bulk_actions( $actions ) {
 		unset( $actions['edit'] );
 		return $actions;
 	}
 
-	// change the "add new" url
+	/**
+	 * Change the "add new" url on post-edit screen
+	 *
+	 * @filter clean_url
+	 */
 	static function clean_url( $clean_url, $unclean_url, $context ) {
 		if ( strpos( $clean_url, 'post-new.php?post_type=' . self::entity ) !== false ) {
 			return 'javascript:void(0);';
