@@ -115,7 +115,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Get attachment details for a set of IDs
+	 * Get attachment details for a set of IDs.
 	 *
 	 * @action wp_ajax_rtg_query_attachments
 	 */
@@ -140,7 +140,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Insert "image" and custom "title" columns
+	 * Insert "image" and custom "title" columns.
 	 *
 	 * @filter manage_edit-[post_type]_columns
 	 */
@@ -155,7 +155,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Render "Image" and custom "Title" columns
+	 * Render "Image" and custom "Title" columns.
 	 *
 	 * @filter manage_[post_type]_posts_custom_column
 	 */
@@ -203,7 +203,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Render relevant media templates
+	 * Render relevant media templates.
 	 *
 	 * @action print_media_templates
 	 */
@@ -267,7 +267,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Send an error message and any additional data
+	 * Send an error message and any additional data.
 	 *
 	 * @param  string $message error message
 	 * @param  [array] $data additional data to pass in response
@@ -426,7 +426,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Get the attachments associated with a particular gallery, by term ID
+	 * Get the attachments associated with a particular gallery, by term ID.
 	 *
 	 * @param  int $term_id term id for the gallery
 	 * @return  array associated attachment IDs
@@ -494,7 +494,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Convert a slug-based shortcode to the standard ID-based gallery shortcode
+	 * Convert a slug-based shortcode to the standard ID-based gallery shortcode.
 	 *
 	 * @action shortcode_atts_gallery
 	 */
@@ -515,7 +515,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Return the post ID for a gallery term, if any
+	 * Return the post ID for a gallery term, if any.
 	 *
 	 * @param term_id|WP_Term The term ID or object
 	 * @return int|null
@@ -539,7 +539,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Remove "edit" from bulk actions dropdown
+	 * Remove "edit" from bulk actions dropdown.
 	 *
 	 * @action bulk_actions-edit-[post_type]
 	 */
@@ -549,7 +549,7 @@ class WP_Remember_The_Galleries {
 	}
 
 	/**
-	 * Change the "add new" url on post-edit screen
+	 * Change the "add new" url on post-edit screen.
 	 *
 	 * @filter clean_url
 	 */
