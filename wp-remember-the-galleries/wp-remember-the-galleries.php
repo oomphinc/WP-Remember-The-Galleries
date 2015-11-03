@@ -135,7 +135,6 @@ class WP_Remember_The_Galleries {
 	 * Insert "image" column
 	 */
 	static function manage_columns( $columns ) {
-		unset( $columns['posts'], $columns['title'] );
 		return array(
 			'cb' => $columns['cb'],
 			'gallerytitle' => __( "Title" ),
