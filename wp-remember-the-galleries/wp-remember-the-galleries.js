@@ -481,7 +481,6 @@
 
 		details.set('id', id);
 		details.set('name', name);
-		details.set('target', this);
 		details.set('context', 'bulk-edit');
 
 		wp.media.frame.open();
