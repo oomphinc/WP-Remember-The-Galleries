@@ -291,16 +291,15 @@
 					context: this.galleryDetails.get('context'),
 				};
 
-				var $target = this.galleryDetails.get('target') && $(this.galleryDetails.get('target'));
-
 				var save = function() {
 					media.post('rtg_save_gallery', saveData).done(function(data) {
 						media.frame && media.frame.close();
 						switch (saveData.context) {
 							case 'bulk-edit':
 								if (data.columns) {
+									// replace matching columns with new markup
 									for(var column in data.columns) {
-										$target.parent().parent().find('.' + column).html(data.columns[column]);
+										$('.open-gallery-edit[data-id='+saveData.term_id+']').closest('.' + column).html(data.columns[column]);
 									}
 								}
 							break;
