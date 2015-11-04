@@ -158,7 +158,10 @@ class WP_Remember_The_Galleries {
 	 *
 	 * @filter manage_[post_type]_posts_custom_column
 	 */
-	static function render_custom_columns( $column, $post_id ) {
+	static function render_custom_columns( $column, $post_id, $echo = true ) {
+		if ( !$echo ) {
+			ob_start();
+		}
 		switch ( $column ) {
 		case 'gallerytitle' :
 		case 'images' :
@@ -199,7 +202,10 @@ class WP_Remember_The_Galleries {
 			}
 			break;
 		}
-	}
+		if ( !$echo ) {
+			return ob_get_clean();
+		}
+ 	}
 
 	/**
 	 * Render relevant media templates.
@@ -300,7 +306,11 @@ class WP_Remember_The_Galleries {
 			'settings' => array(
 				'flags' => FILTER_REQUIRE_ARRAY
 			),
-			'yes' => FILTER_VALIDATE_BOOLEAN
+			'yes' => FILTER_VALIDATE_BOOLEAN,
+			'context' => array(
+				'filter' => FILTER_SANITIZE_STRING,
+				'flags' => FILTER_REQUIRE_SCALAR
+			),
 		) );
 
 		if ( !$input ) {
@@ -361,6 +371,7 @@ class WP_Remember_The_Galleries {
 			}
 		}
 
+		$new = false;
 		if( !$term_id ) {
 			$post_id = wp_insert_post( array(
 				'post_title' => $gallery_name,
@@ -379,6 +390,7 @@ class WP_Remember_The_Galleries {
 			}
 
 			$term_id = $term_info['term_id'];
+			$new = true;
 		}
 		else {
 			$post_id = self::get_post_id( $term_id );
@@ -421,7 +433,17 @@ class WP_Remember_The_Galleries {
 		}
 
 		_update_generic_term_count( $term_id, self::entity );
-		wp_send_json_success( 'gallery-saved' );
+		$response = array(
+			'response' => 'gallery-saved',
+			'isNew' => $new,
+		);
+		if ( isset( $context ) && $context === 'bulk-edit' ) {
+			$response['columns'] = array(
+				'images' => self::render_custom_columns( 'images', $post_id, false ),
+				'gallerytitle' => self::render_custom_columns( 'gallerytitle', $post_id, false ),
+			);
+		}
+		wp_send_json_success( $response );
 	}
 
 	/**
