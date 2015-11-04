@@ -58,6 +58,7 @@ class WP_Remember_The_Galleries {
 		add_action( 'wp_ajax_rtg_gallery_search', array( $c, 'gallery_search' ) );
 		add_action( 'wp_ajax_rtg_query_attachments', array( $c, 'query_attachments' ) );
 		add_action( 'init', array( $c, 'action_init_post_type' ) );
+		add_action( 'delete_post', array( $c, 'post_deleted' ) );
 
 		// Accept 'slug' in [gallery] shortcode and emit a saved gallery
 		add_action( 'shortcode_atts_gallery', array( $c, 'munge_shortcode' ), 10, 3 );
@@ -581,5 +582,20 @@ class WP_Remember_The_Galleries {
 
 		return $clean_url;
 	}
+
+	/**
+	 * Delete associated term when a post is deleted.
+	 *
+	 * @action delete_post
+	 */
+	static function post_deleted( $post_id ) {
+		$post = get_post( $post_id );
+		if ( $post && $post->post_type === self::entity ) {
+			if ( $term = get_term_by( 'slug', self::entity . '-' . $post_id, self::entity ) ) {
+				wp_delete_term( $term->term_id, self::entity );
+			}
+		}
+	}
+
 }
 WP_Remember_The_Galleries::_setup();
