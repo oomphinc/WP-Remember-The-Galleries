@@ -3,7 +3,7 @@
 Plugin Name: WP "remember the galleries"
 Description: Lightweight galleries
 Author: Ben Doherty @ Oomph, Inc.
-Version: 0.0.1
+Version: 0.1.0
 Author URI: http://www.oomphinc.com/thinking/author/bdoherty/
 License: GPLv2 or later
 Text Domain: wprtg
@@ -214,7 +214,7 @@ class WP_Remember_The_Galleries {
 	 * @action print_media_templates
 	 */
 	static function print_media_templates() {
-		require_once( __DIR__ . '/media-templates.php' );
+		require_once( __DIR__ . '/inc/media-templates.php' );
 	}
 
 	/**
@@ -225,7 +225,7 @@ class WP_Remember_The_Galleries {
 	static function enqueue_scripts() {
 		global $current_screen;
 
-		wp_register_script( 'wp-rtg', plugins_url( 'wp-remember-the-galleries.js', __FILE__ ), array( 'jquery-ui-autocomplete' ), 1, true );
+		wp_register_script( 'wp-rtg', plugins_url( 'inc/wp-remember-the-galleries.js', __FILE__ ), array( 'jquery-ui-autocomplete' ), 1, true );
 
 		$js_object = array(
 			'select-gallery' => __( 'Select gallery or name a new gallery...', 'wprtg' ),
@@ -266,7 +266,7 @@ class WP_Remember_The_Galleries {
 
 			wp_enqueue_media();
 			wp_enqueue_script( 'wp-rtg' );
-			wp_enqueue_style( 'wp-rtg', plugins_url( 'rtg-admin.css', __FILE__ ), array(), 1 );
+			wp_enqueue_style( 'wp-rtg', plugins_url( 'inc/rtg-admin.css', __FILE__ ), array(), 1 );
 		}
 
 		wp_localize_script( 'wp-rtg', 'wpRememberTheGalleries',  $js_object );
