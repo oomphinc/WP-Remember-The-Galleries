@@ -179,17 +179,16 @@ class WP_Remember_The_Galleries {
 			}
 
 			if( $objects ) {
-				echo $before . '<a class="' . join( ' ', $classes ) . '" href="javascript:void(0);" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . $label .  $after;
+				echo $before . '<span class="image-count">' . $label . '</span><a class="' . join( ' ', $classes ) . '" href="javascript:void(0);" title="' . esc_attr( $term->name ) . '" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . $after;
 
 				if( $column == 'images' ) {
-					echo '<br />';
 
 					foreach( array_slice( $objects, 0, 10 ) as $attachment_id ) {
-						echo '<img width="40" src="' . esc_url( wp_get_attachment_thumb_url( $attachment_id ) ) . '" />&nbsp;';
+						echo '<img width="40" src="' . esc_url( wp_get_attachment_thumb_url( $attachment_id ) ) . '" />';
 					}
 
 					if( count( $objects ) > 10 ) {
-						echo '&nbsp;&hellip;';
+						echo '&hellip;';
 					}
 				}
 
