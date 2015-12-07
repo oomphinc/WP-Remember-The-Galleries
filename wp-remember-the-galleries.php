@@ -179,7 +179,7 @@ class WP_Remember_The_Galleries {
 			}
 
 			if( $objects ) {
-				echo $before . '<span class="image-count">' . $label . '</span><a class="' . join( ' ', $classes ) . '" href="javascript:void(0);" title="' . esc_attr( $term->name ) . '" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . $after;
+				echo $before . '<span class="image-count">' . esc_html( $label ) . '</span><a class="' . join( ' ', $classes ) . '" href="javascript:void(0);" title="' . esc_attr( $term->name ) . '" data-name="' . esc_attr( $term->name ) . '" data-id="' . esc_attr( $term->term_id ) . '" data-ids="' . esc_attr( join( ',', $objects ) ) . '">' . $after;
 
 				if( $column == 'images' ) {
 
